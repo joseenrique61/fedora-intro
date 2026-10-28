@@ -1,0 +1,4616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Guía técnica de transición de Windows a Fedora con KDE Plasma para ingenieros de software: sistema de archivos, paquetes, DNF5, Flatpak, terminal, Plasma 6 y flujo de trabajo.">
+<meta name="color-scheme" content="dark light">
+<title>Fedora con KDE Plasma — Guía para ingenieros que vienen de Windows</title>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.dataset.theme = saved;
+      }
+    } catch (e) {}
+  })();
+</script>
+<style>
+/* ============================================================
+   Catppuccin Mocha (oscuro, por defecto)
+   ============================================================ */
+:root,
+:root[data-theme="dark"] {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+  --text: #cdd6f4;
+  --subtext1: #bac2de;
+  --subtext0: #a6adc8;
+  --overlay2: #9399b2;
+  --overlay1: #7f849c;
+  --overlay0: #6c7086;
+  --surface2: #585b70;
+  --surface1: #45475a;
+  --surface0: #313244;
+  --blue: #89b4fa;
+  --lavender: #b4befe;
+  --sapphire: #74c7ec;
+  --sky: #89dceb;
+  --teal: #94e2d5;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --peach: #fab387;
+  --maroon: #eba0ac;
+  --red: #f38ba8;
+  --mauve: #cba6f7;
+  --pink: #f5c2e7;
+  --rosewater: #f5e0dc;
+  --flamingo: #f2cdcd;
+  --code-bg: #181825;
+  --inline-bg: #313244;
+  --shadow: 0 14px 40px rgba(0, 0, 0, .38);
+  color-scheme: dark;
+  --topbar-h: 56px;
+  --sidebar-w: 306px;
+  --content-w: 920px;
+  --radius: 12px;
+}
+
+/* ============================================================
+   Catppuccin Latte (claro)
+   ============================================================ */
+:root[data-theme="light"] {
+  --base: #eff1f5;
+  --mantle: #e6e9ef;
+  --crust: #dce0e8;
+  --text: #4c4f69;
+  --subtext1: #5c5f77;
+  --subtext0: #6c6f85;
+  --overlay2: #7c7f93;
+  --overlay1: #8c8fa1;
+  --overlay0: #9ca0b0;
+  --surface2: #acb0be;
+  --surface1: #bcc0cc;
+  --surface0: #ccd0da;
+  --blue: #1e66f5;
+  --lavender: #7287fd;
+  --sapphire: #209fb5;
+  --sky: #04a5e5;
+  --teal: #179299;
+  --green: #40a02b;
+  --yellow: #df8e1d;
+  --peach: #fe640b;
+  --maroon: #e64553;
+  --red: #d20f39;
+  --mauve: #8839ef;
+  --pink: #ea76cb;
+  --rosewater: #dc8a78;
+  --flamingo: #dd7878;
+  --code-bg: #e6e9ef;
+  --inline-bg: #ccd0da;
+  --shadow: 0 14px 40px rgba(76, 79, 105, .14);
+  color-scheme: light;
+}
+
+
+/* ============================================================
+   Base
+   ============================================================ */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--base);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+code, pre, kbd, .mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--mauve) 42%, transparent);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color .15s ease;
+}
+a:hover { color: var(--sky); }
+
+p { margin: .85rem 0; }
+strong { font-weight: 650; color: var(--text); }
+em { color: var(--subtext1); }
+small { font-size: .85em; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--surface0);
+  margin: 2.5rem 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: -120px;
+  left: 1rem;
+  z-index: 200;
+  padding: .65rem 1rem;
+  border-radius: 8px;
+  background: var(--blue);
+  color: var(--crust);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus { top: .6rem; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+   Barra superior y progreso
+   ============================================================ */
+.progress {
+  position: fixed;
+  top: 0; left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--mauve), var(--pink));
+  z-index: 120;
+  transition: width .08s linear;
+}
+
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 0 1.15rem;
+  background: color-mix(in srgb, var(--mantle) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--surface0);
+  z-index: 100;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+}
+.brand:hover { color: var(--text); }
+
+.brand-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--blue), var(--mauve));
+  color: var(--crust);
+  font-size: .85rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.brand small {
+  color: var(--overlay1);
+  font-weight: 500;
+  font-size: .78rem;
+  margin-left: .15rem;
+}
+
+.spacer { flex: 1; }
+
+.topbar-link {
+  color: var(--subtext0);
+  font-size: .85rem;
+  text-decoration: none;
+  padding: .35rem .55rem;
+  border-radius: 7px;
+}
+.topbar-link:hover { color: var(--text); background: var(--surface0); }
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--subtext0);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.icon-btn:hover {
+  background: var(--surface0);
+  border-color: var(--surface1);
+  color: var(--text);
+}
+
+.menu-btn { display: none; }
+</style>
+<style>
+/* ============================================================
+   Layout general
+   ============================================================ */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  padding-top: var(--topbar-h);
+}
+
+.sidebar {
+  position: sticky;
+  top: var(--topbar-h);
+  align-self: start;
+  height: calc(100dvh - var(--topbar-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem .85rem 2.5rem;
+  background: var(--mantle);
+  border-right: 1px solid var(--surface0);
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--surface1);
+  border-radius: 999px;
+}
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+
+.sidebar-search {
+  position: sticky;
+  top: -.2rem;
+  z-index: 2;
+  padding: .2rem 0 .8rem;
+  background: var(--mantle);
+}
+
+.search-field { position: relative; }
+
+.search-field svg {
+  position: absolute;
+  top: 50%;
+  left: .65rem;
+  transform: translateY(-50%);
+  color: var(--overlay1);
+  pointer-events: none;
+}
+
+.search-field input {
+  width: 100%;
+  padding: .55rem .7rem .55rem 2.05rem;
+  border: 1px solid var(--surface1);
+  border-radius: 9px;
+  background: var(--crust);
+  color: var(--text);
+  font: inherit;
+  font-size: .84rem;
+}
+.search-field input::placeholder { color: var(--overlay1); }
+.search-field input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+
+.toc { font-size: .87rem; }
+
+.toc-group { margin-bottom: .3rem; }
+
+.toc-group-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .65rem .5rem .4rem;
+  border: 0;
+  background: none;
+  color: var(--overlay1);
+  font: 700 .7rem/1.2 inherit;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.toc-group-btn:hover { color: var(--subtext1); }
+
+.toc-group-btn .chev {
+  flex: none;
+  transition: transform .2s ease;
+}
+.toc-group.collapsed .chev { transform: rotate(-90deg); }
+.toc-group.collapsed .toc-list { display: none; }
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 .35rem;
+}
+
+.toc-list li.hidden { display: none; }
+.toc-group.hidden { display: none; }
+
+.toc-link {
+  display: block;
+  padding: .33rem .6rem;
+  border-left: 2px solid transparent;
+  border-radius: 0 7px 7px 0;
+  color: var(--subtext0);
+  text-decoration: none;
+  line-height: 1.4;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.toc-link:hover {
+  background: var(--surface0);
+  color: var(--text);
+}
+.toc-link.active {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  border-left-color: var(--blue);
+  font-weight: 600;
+}
+.toc-link.sub {
+  padding-left: 1.45rem;
+  font-size: .8rem;
+  color: var(--overlay1);
+}
+.toc-link.sub.active { color: var(--blue); }
+
+.filter-empty {
+  display: none;
+  padding: .9rem .6rem;
+  color: var(--overlay1);
+  font-size: .82rem;
+}
+.filter-empty.show { display: block; }
+
+.sidebar-note {
+  margin-top: 1.2rem;
+  padding: .85rem .7rem;
+  border-top: 1px solid var(--surface0);
+  color: var(--overlay1);
+  font-size: .74rem;
+  line-height: 1.55;
+}
+.sidebar-note kbd { font-size: .7rem; }
+
+/* ============================================================
+   Contenido
+   ============================================================ */
+.content { min-width: 0; }
+
+.content-inner {
+  max-width: var(--content-w);
+  margin-inline: auto;
+  padding: 2.6rem 3rem 6rem;
+}
+
+h1, h2, h3, h4 {
+  color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+h2 {
+  margin: 3.6rem 0 1rem;
+  padding-top: 1.9rem;
+  border-top: 1px solid var(--surface0);
+  font-size: 1.95rem;
+  scroll-margin-top: calc(var(--topbar-h) + 20px);
+}
+h2 .num {
+  display: inline-block;
+  margin-right: .55rem;
+  padding: .22em .45em;
+  border: 1px solid color-mix(in srgb, var(--blue) 45%, var(--surface1));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .68em;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: .16em;
+}
+
+h3 {
+  margin: 2.3rem 0 .55rem;
+  font-size: 1.27rem;
+  scroll-margin-top: calc(var(--topbar-h) + 20px);
+}
+h3::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: .92em;
+  margin-right: .55rem;
+  border-radius: 2px;
+  background: var(--mauve);
+  vertical-align: -.06em;
+}
+
+section[id] {
+  scroll-margin-top: calc(var(--topbar-h) + 20px);
+}
+
+main[id] {
+  scroll-margin-top: var(--topbar-h);
+}
+
+h4 {
+  margin: 1.7rem 0 .4rem;
+  font-size: 1.02rem;
+  color: var(--subtext1);
+}
+
+.lead {
+  color: var(--subtext1);
+  font-size: 1.07rem;
+}
+
+.muted { color: var(--subtext0); }
+.small { font-size: .86rem; }
+
+ul, ol {
+  margin: .8rem 0;
+  padding-left: 1.35rem;
+}
+li { margin: .32rem 0; }
+li > ul, li > ol { margin: .25rem 0; }
+li::marker { color: var(--overlay1); }
+
+ul.check {
+  list-style: none;
+  padding-left: 1.5rem;
+}
+ul.check li { position: relative; }
+ul.check li::before {
+  content: "✓";
+  position: absolute;
+  left: -1.4rem;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ============================================================
+   Código
+   ============================================================ */
+code {
+  font-size: .88em;
+}
+
+:not(pre) > code {
+  padding: .14em .4em;
+  border-radius: 6px;
+  background: var(--inline-bg);
+  color: var(--peach);
+  overflow-wrap: break-word;
+}
+
+pre {
+  position: relative;
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius);
+  color: var(--subtext1);
+  font-size: .86rem;
+  line-height: 1.62;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+}
+pre code {
+  display: block;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre;
+}
+pre .c { color: var(--overlay1); font-style: italic; }
+pre .k { color: var(--blue); }
+pre .s { color: var(--green); }
+pre .f { color: var(--yellow); }
+pre .p { color: var(--mauve); }
+pre .r { color: var(--red); }
+
+.code-wrap { position: relative; margin: 1rem 0; }
+.code-wrap pre { margin: 0; padding-right: 5rem; }
+
+.copy-btn {
+  position: absolute;
+  top: .55rem;
+  right: .55rem;
+  z-index: 1;
+  padding: .38rem .58rem;
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  background: var(--surface0);
+  color: var(--subtext0);
+  font: 600 .7rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+  opacity: .8;
+  transition: opacity .15s ease, color .15s ease, background .15s ease, border-color .15s ease;
+}
+.copy-btn:hover {
+  opacity: 1;
+  color: var(--text);
+  background: var(--surface1);
+}
+.copy-btn.done {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 55%, var(--surface1));
+}
+
+kbd {
+  display: inline-block;
+  padding: .08em .4em;
+  border: 1px solid var(--surface1);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface0);
+  color: var(--text);
+  font-size: .78em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Tablas
+   ============================================================ */
+.table-wrap {
+  margin: 1.1rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius);
+  background: var(--mantle);
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface1) transparent;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .89rem;
+  line-height: 1.55;
+}
+
+th, td {
+  padding: .62rem .8rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--surface0);
+}
+th {
+  background: var(--surface0);
+  color: var(--text);
+  font-weight: 650;
+  font-size: .82rem;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+th.win { color: var(--sky); }
+th.lin { color: var(--green); }
+
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--surface0) 34%, transparent);
+}
+td code { white-space: nowrap; }
+
+/* ============================================================
+   Callouts, tarjetas, chips
+   ============================================================ */
+.callout {
+  margin: 1.25rem 0;
+  padding: .85rem 1.1rem;
+  border-left: 3px solid var(--blue);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--blue) 9%, var(--base));
+}
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout .t {
+  display: block;
+  margin-bottom: .25rem;
+  color: var(--blue);
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.callout.warn {
+  border-color: var(--yellow);
+  background: color-mix(in srgb, var(--yellow) 9%, var(--base));
+}
+.callout.warn .t { color: var(--yellow); }
+.callout.danger {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 9%, var(--base));
+}
+.callout.danger .t { color: var(--red); }
+.callout.tip {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--green) 9%, var(--base));
+}
+.callout.tip .t { color: var(--green); }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .9rem;
+  margin: 1.3rem 0;
+}
+.card {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius);
+  background: var(--mantle);
+}
+.card > :first-child { margin-top: 0; }
+.card > :last-child { margin-bottom: 0; }
+.card h4 {
+  margin: 0 0 .35rem;
+  color: var(--text);
+  font-size: .97rem;
+}
+.card p {
+  margin: 0;
+  color: var(--subtext0);
+  font-size: .87rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin: 1.1rem 0;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .2rem .62rem;
+  border: 1px solid var(--surface1);
+  border-radius: 999px;
+  background: var(--surface0);
+  color: var(--subtext1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .74rem;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: .16em .5em;
+  border: 1px solid var(--surface1);
+  border-radius: 6px;
+  background: var(--surface0);
+  color: var(--subtext1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .72em;
+  font-weight: 600;
+  vertical-align: .08em;
+  white-space: nowrap;
+}
+.badge.green { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, var(--surface1)); }
+.badge.blue { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 45%, var(--surface1)); }
+.badge.yellow { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 45%, var(--surface1)); }
+.badge.red { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, var(--surface1)); }
+
+/* ============================================================
+   Pestañas y acordeones
+   ============================================================ */
+.tabs {
+  margin: 1.2rem 0;
+  overflow: hidden;
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius);
+  background: var(--mantle);
+}
+.tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  padding: .4rem;
+  border-bottom: 1px solid var(--surface0);
+  background: var(--code-bg);
+}
+.tablist button {
+  padding: .45rem .9rem;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--subtext0);
+  font: inherit;
+  font-size: .87rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+.tablist button:hover { color: var(--text); background: var(--surface0); }
+.tablist button[aria-selected="true"] {
+  color: var(--text);
+  background: var(--surface0);
+}
+.tabpanel { padding: .35rem 1.1rem 1rem; }
+.tabpanel[hidden] { display: none; }
+.tabpanel > :first-child { margin-top: .7rem; }
+
+details {
+  margin: .7rem 0;
+  padding: .1rem 1rem;
+  border: 1px solid var(--surface0);
+  border-radius: var(--radius);
+  background: var(--mantle);
+}
+details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .8rem 0;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+details summary::-webkit-details-marker { display: none; }
+details summary::after {
+  content: "+";
+  flex: none;
+  color: var(--overlay1);
+  font-family: ui-monospace, monospace;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+details[open] summary::after { content: "−"; }
+details[open] summary {
+  margin-bottom: .7rem;
+  border-bottom: 1px solid var(--surface0);
+}
+details .details-body { padding-bottom: .6rem; }
+details .details-body > :first-child { margin-top: 0; }
+
+/* ============================================================
+   Portada
+   ============================================================ */
+.hero {
+  margin-bottom: 2.4rem;
+  padding: 2.2rem 2.1rem;
+  border: 1px solid var(--surface0);
+  border-radius: 18px;
+  background:
+    radial-gradient(620px 260px at 12% 0%, color-mix(in srgb, var(--blue) 15%, transparent), transparent 70%),
+    radial-gradient(520px 240px at 92% 8%, color-mix(in srgb, var(--mauve) 14%, transparent), transparent 70%),
+    var(--mantle);
+}
+
+.eyebrow {
+  margin: 0 0 .5rem;
+  color: var(--mauve);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: .35rem 0 .9rem;
+  font-size: clamp(2.05rem, 5vw, 3.15rem);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  background: linear-gradient(105deg, var(--blue), var(--lavender) 45%, var(--mauve) 75%, var(--pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+:root[data-theme="light"] .hero h1 {
+  background-image: linear-gradient(105deg, var(--blue), var(--mauve) 55%, var(--red));
+}
+
+.hero .lead {
+  max-width: 66ch;
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--subtext1);
+}
+
+.hero .chips { margin-bottom: 0; }
+
+/* ============================================================
+   Varios
+   ============================================================ */
+.footer {
+  margin-top: 4rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--surface0);
+  color: var(--overlay1);
+  font-size: .84rem;
+}
+.footer p { margin: .4rem 0; }
+
+.to-top {
+  position: fixed;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--surface1);
+  border-radius: 50%;
+  background: var(--mantle);
+  color: var(--subtext0);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity .2s ease, visibility .2s ease, transform .2s ease, color .15s ease;
+}
+.to-top.show {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.to-top:hover { color: var(--text); }
+
+.overlay {
+  position: fixed;
+  inset: var(--topbar-h) 0 0 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, .55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+.overlay.show { opacity: 1; pointer-events: auto; }
+
+body.no-scroll { overflow: hidden; }
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1180px) {
+  .content-inner { padding: 2.2rem 2rem 5rem; }
+}
+
+@media (max-width: 1023px) {
+  .layout { grid-template-columns: 1fr; }
+
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    z-index: 90;
+    width: min(86vw, 340px);
+    height: calc(100dvh - var(--topbar-h));
+    border-right: 1px solid var(--surface1);
+    box-shadow: var(--shadow);
+    transform: translateX(-104%);
+    transition: transform .24s ease;
+  }
+  .sidebar.open { transform: none; }
+
+  .menu-btn { display: inline-grid; }
+  .content-inner { padding: 1.6rem 1.35rem 5rem; }
+}
+
+@media (max-width: 720px) {
+  .topbar { padding: 0 .75rem; gap: .5rem; }
+  .topbar-link { display: none; }
+  .brand small { display: none; }
+
+  .content-inner { padding: 1.2rem 1rem 4.5rem; }
+  .hero { padding: 1.5rem 1.2rem; border-radius: 14px; }
+  h2 { font-size: 1.55rem; margin-top: 2.8rem; }
+  h3 { font-size: 1.13rem; }
+  table { font-size: .82rem; }
+  th, td { padding: .5rem .6rem; }
+  pre { font-size: .79rem; padding: .85rem .9rem; }
+  .code-wrap pre { padding-right: 4.4rem; }
+  .copy-btn { top: .4rem; right: .4rem; padding: .3rem .45rem; font-size: .65rem; }
+  .tabpanel { padding: .2rem .75rem .8rem; }
+  details { padding: .1rem .75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* ============================================================
+   Impresión
+   ============================================================ */
+@media print {
+  .topbar, .sidebar, .overlay, .progress, .to-top, .copy-btn { display: none !important; }
+  .layout { display: block; padding-top: 0; }
+  .content-inner { max-width: none; padding: 0; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  a { color: #000; }
+  pre, .table-wrap, details, .card, .callout { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  h2 { border-top-color: #999; }
+}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" type="button"
+          aria-label="Abrir el índice" aria-controls="sidebar" aria-expanded="false">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
+    </svg>
+  </button>
+
+  <a class="brand" href="#inicio">
+    <span class="brand-badge" aria-hidden="true">F</span>
+    <span>Fedora <span aria-hidden="true">·</span> KDE <small>para devs</small></span>
+  </a>
+
+  <div class="spacer"></div>
+
+  <a class="topbar-link" href="#t10">Chuleta de comandos</a>
+
+  <button class="icon-btn" id="themeToggle" type="button" aria-label="Cambiar el tema de color" title="Cambiar tema">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    </svg>
+  </button>
+</header>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Índice de la guía">
+    <div class="sidebar-search">
+      <div class="search-field">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+        </svg>
+        <input id="navFilter" type="search" placeholder="Filtrar el índice…" autocomplete="off" aria-label="Filtrar las secciones del índice">
+      </div>
+    </div>
+
+    <nav class="toc" id="toc" aria-label="Secciones">
+      <div class="toc-group" data-group>
+        <button class="toc-group-btn" type="button" aria-expanded="true">
+          <span>Fundamentos</span>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="toc-list">
+          <li><a class="toc-link" href="#inicio">Portada</a></li>
+          <li><a class="toc-link" href="#t01">01 · Windows → Linux</a></li>
+          <li><a class="toc-link sub" href="#c01-1">1.1 El cambio de modelo mental</a></li>
+          <li><a class="toc-link sub" href="#c01-2">1.2 Kernel, userland y distribución</a></li>
+          <li><a class="toc-link sub" href="#c01-3">1.3 Sistema de archivos (FHS)</a></li>
+          <li><a class="toc-link sub" href="#c01-4">1.4 Usuarios, permisos y privilegios</a></li>
+          <li><a class="toc-link sub" href="#c01-5">1.5 Procesos, servicios y systemd</a></li>
+          <li><a class="toc-link sub" href="#c01-6">1.6 Todo es un archivo</a></li>
+          <li><a class="toc-link sub" href="#c01-7">1.7 Binarios y enlaces dinámicos</a></li>
+          <li><a class="toc-link" href="#t02">02 · Fedora</a></li>
+          <li><a class="toc-link sub" href="#c02-1">2.1 Qué es Fedora</a></li>
+          <li><a class="toc-link sub" href="#c02-2">2.2 Ediciones, spins y escritorios atómicos</a></li>
+          <li><a class="toc-link sub" href="#c02-3">2.3 Ciclo de versiones y actualizaciones</a></li>
+          <li><a class="toc-link sub" href="#c02-4">2.4 Filosofía y valores por defecto</a></li>
+          <li><a class="toc-link" href="#t03">03 · Gestores de paquetes</a></li>
+          <li><a class="toc-link sub" href="#c03-1">3.1 Anatomía de un paquete y un repositorio</a></li>
+          <li><a class="toc-link sub" href="#c03-2">3.2 DNF5 en la práctica</a></li>
+          <li><a class="toc-link sub" href="#c03-3">3.3 RPM Fusion, COPR y terceros</a></li>
+          <li><a class="toc-link sub" href="#c03-4">3.4 Flatpak y Flathub</a></li>
+          <li><a class="toc-link sub" href="#c03-5">3.5 Matriz de decisión</a></li>
+          <li><a class="toc-link sub" href="#c03-6">3.6 Equivalentes a winget y compañía</a></li>
+          <li><a class="toc-link sub" href="#c03-7">3.7 Actualizaciones, kernel y reinicios</a></li>
+          <li><a class="toc-link" href="#t04">04 · Terminal esencial</a></li>
+          <li><a class="toc-link sub" href="#c04-1">4.1 Shell, PATH y entorno</a></li>
+          <li><a class="toc-link sub" href="#c04-2">4.2 Archivos y navegación</a></li>
+          <li><a class="toc-link sub" href="#c04-3">4.3 Permisos en práctica</a></li>
+          <li><a class="toc-link sub" href="#c04-4">4.4 Tuberías y redirección</a></li>
+          <li><a class="toc-link sub" href="#c04-5">4.5 Procesos y logs</a></li>
+          <li><a class="toc-link sub" href="#c04-6">4.6 SSH y transferencia de archivos</a></li>
+        </ul>
+      </div>
+
+      <div class="toc-group" data-group>
+        <button class="toc-group-btn" type="button" aria-expanded="true">
+          <span>Escritorio y flujo de trabajo</span>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="toc-list">
+          <li><a class="toc-link" href="#t05">05 · KDE Plasma</a></li>
+          <li><a class="toc-link sub" href="#c05-1">5.1 KDE, Plasma, Qt y el resto del naming</a></li>
+          <li><a class="toc-link sub" href="#c05-2">5.2 Arquitectura de la sesión</a></li>
+          <li><a class="toc-link sub" href="#c05-3">5.3 El escritorio en uso</a></li>
+          <li><a class="toc-link sub" href="#c05-4">5.4 System Settings frente al Panel de control</a></li>
+          <li><a class="toc-link sub" href="#c05-5">5.5 Aplicaciones de KDE</a></li>
+          <li><a class="toc-link sub" href="#c05-6">5.6 Personalización y temas</a></li>
+          <li><a class="toc-link sub" href="#c05-7">5.7 La configuración también son archivos</a></li>
+          <li><a class="toc-link sub" href="#c05-8">5.8 Atajos de teclado</a></li>
+          <li><a class="toc-link sub" href="#c05-9">5.9 Wayland en la práctica</a></li>
+          <li><a class="toc-link" href="#t06">06 · Instalación y primer arranque</a></li>
+          <li><a class="toc-link sub" href="#c06-1">6.1 ISO, verificación y Secure Boot</a></li>
+          <li><a class="toc-link sub" href="#c06-2">6.2 Dual boot, máquina virtual o disco dedicado</a></li>
+          <li><a class="toc-link sub" href="#c06-3">6.3 Particionado, Btrfs y cifrado</a></li>
+          <li><a class="toc-link sub" href="#c06-4">6.4 Drivers, códecs y firmware</a></li>
+          <li><a class="toc-link sub" href="#c06-5">6.5 Lista de verificación posterior</a></li>
+          <li><a class="toc-link" href="#t07">07 · Flujo de trabajo de un ingeniero</a></li>
+          <li><a class="toc-link sub" href="#c07-1">7.1 Toolchains y gestores de versiones</a></li>
+          <li><a class="toc-link sub" href="#c07-2">7.2 IDEs y editores</a></li>
+          <li><a class="toc-link sub" href="#c07-3">7.3 Contenedores: Podman, Toolbox, Distrobox</a></li>
+          <li><a class="toc-link sub" href="#c07-4">7.4 Git, SSH y GPG</a></li>
+          <li><a class="toc-link sub" href="#c07-5">7.5 Virtualización con KVM</a></li>
+          <li><a class="toc-link sub" href="#c07-6">7.6 Servicios de desarrollo con systemd --user</a></li>
+        </ul>
+      </div>
+
+      <div class="toc-group" data-group>
+        <button class="toc-group-btn" type="button" aria-expanded="true">
+          <span>Operación y referencia</span>
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul class="toc-list">
+          <li><a class="toc-link" href="#t08">08 · Seguridad y mantenimiento</a></li>
+          <li><a class="toc-link sub" href="#c08-1">8.1 SELinux y firewalld</a></li>
+          <li><a class="toc-link sub" href="#c08-2">8.2 Copias de seguridad y snapshots</a></li>
+          <li><a class="toc-link sub" href="#c08-3">8.3 Diagnóstico y logs</a></li>
+          <li><a class="toc-link" href="#t09">09 · Problemas comunes</a></li>
+          <li><a class="toc-link" href="#t10">10 · Referencia</a></li>
+          <li><a class="toc-link sub" href="#c10-1">10.1 Glosario</a></li>
+          <li><a class="toc-link sub" href="#c10-2">10.2 Chuleta de comandos</a></li>
+          <li><a class="toc-link sub" href="#c10-3">10.3 Recursos</a></li>
+          <li><a class="toc-link" href="#tA">Apéndice A · Equivalencias</a></li>
+        </ul>
+      </div>
+
+      <p class="filter-empty" id="filterEmpty">No hay secciones que coincidan.</p>
+    </nav>
+
+    <div class="sidebar-note">
+      <kbd>/</kbd> para buscar en el índice · <kbd>Esc</kbd> para cerrar.<br>
+      Los comandos con <code>$</code> se ejecutan como usuario y con <code>#</code> como root.
+    </div>
+  </aside>
+
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+  <main class="content" id="contenido">
+    <div class="content-inner">
+<section id="inicio" aria-labelledby="titulo-principal">
+  <div class="hero">
+    <p class="eyebrow">Guía de transición · edición 2026</p>
+    <h1 id="titulo-principal">De Windows a Fedora con KDE Plasma</h1>
+    <p class="lead">
+      Linux no es Windows con otra interfaz. Cambia el modelo de responsabilidades, la forma de
+      instalar software y el lugar donde vive la configuración. Esta guía explica ese cambio desde
+      cero y termina con un entorno de desarrollo productivo sobre Fedora y Plasma 6.
+    </p>
+    <div class="chips" aria-label="Tecnologías cubiertas">
+      <span class="chip">Fedora 44+</span>
+      <span class="chip">KDE Plasma 6</span>
+      <span class="chip">DNF5</span>
+      <span class="chip">Wayland</span>
+      <span class="chip">Btrfs</span>
+      <span class="chip">SELinux</span>
+      <span class="chip">Podman</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="t">Sobre las versiones</span>
+    <p>
+      Fedora publica una versión nueva cada seis meses y Plasma evoluciona al mismo ritmo. Los
+      números concretos cambian; los conceptos, rutas y comandos de esta guía se mantienen
+      estables. Comprueba tu versión con <code>cat /etc/fedora-release</code>.
+    </p>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>Para quién es</h4>
+      <p>
+        Para quien programa y viene de Windows: conoce la terminal, los entornos de desarrollo y
+        los contenedores, pero nunca administró un sistema Linux de escritorio.
+      </p>
+    </div>
+    <div class="card">
+      <h4>Qué no es</h4>
+      <p>
+        No es un manual de Ubuntu ni una lista de trucos. Es el mapa mental que hace que el resto
+        de la documentación de Linux tenga sentido.
+      </p>
+    </div>
+    <div class="card">
+      <h4>Cómo leerla</h4>
+      <p>
+        En orden la primera vez. Después, usa el índice lateral o el buscador para volver a una
+        sección concreta. Cada capítulo es autónomo.
+      </p>
+    </div>
+  </div>
+
+  <h3 id="convenciones">Convenciones de la guía</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Notación</th><th>Significado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>$ comando</code></td><td>Se ejecuta como tu usuario normal.</td></tr>
+        <tr><td><code># comando</code></td><td>Se ejecuta como root, normalmente con <code>sudo</code>.</td></tr>
+        <tr><td><code>&lt;algo&gt;</code></td><td>Marcador de posición: reemplázalo por un valor real.</td></tr>
+        <tr><td><code>→</code></td><td>Equivalencia entre Windows y Linux, o flujo de una operación.</td></tr>
+        <tr><td><span class="badge green">Fedora</span></td><td>Comportamiento específico de Fedora o de Plasma.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <span class="t">Antes de empezar</span>
+    <p>
+      No memorices comandos. Entiende dónde está cada cosa y qué herramienta resuelve cada
+      problema; el resto se consulta. La terminal de Linux es predecible precisamente porque todo
+      se compone de las mismas piezas.
+    </p>
+  </div>
+</section>
+
+<section id="c01" aria-labelledby="t01">
+  <h2 id="t01"><span class="num">01</span> Windows → Linux</h2>
+  <p class="lead">
+    El primer obstáculo no es técnico: es esperar que Linux se comporte como Windows. Este capítulo
+    describe las diferencias estructurales que explican casi todas las demás.
+  </p>
+
+  <h3 id="c01-1">1.1 El cambio de modelo mental</h3>
+  <p>
+    En Windows, el sistema operativo y la interfaz forman una unidad comercial: Explorer, el
+    registro, Windows Update y el instalador de turno son parte del mismo producto. En Linux, el
+    núcleo, las utilidades, el gestor de paquetes y el escritorio son proyectos separados que una
+    distribución ensambla. Esa separación es la que permite cambiar de escritorio sin reinstalar el
+    sistema, o actualizar el kernel sin tocar tus aplicaciones.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Aspecto</th><th class="win">Windows</th><th class="lin">Fedora con KDE</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Interfaz gráfica</td>
+          <td>Parte del sistema operativo.</td>
+          <td>Un proceso de usuario más: <code>plasmashell</code> sobre Wayland.</td>
+        </tr>
+        <tr>
+          <td>Configuración</td>
+          <td>Registro central y Panel de control.</td>
+          <td>Archivos de texto en <code>/etc</code> y <code>~/.config</code>.</td>
+        </tr>
+        <tr>
+          <td>Software</td>
+          <td>Instaladores <code>.exe</code> / <code>.msi</code> por aplicación.</td>
+          <td>Repositorios y transacciones de paquetes; Flatpak para apps de escritorio.</td>
+        </tr>
+        <tr>
+          <td>Actualizaciones</td>
+          <td>Windows Update + actualizadores por aplicación.</td>
+          <td>Una transacción de DNF para el sistema y otra para Flatpak.</td>
+        </tr>
+        <tr>
+          <td>Almacenamiento</td>
+          <td>Letras de unidad (<code>C:</code>, <code>D:</code>).</td>
+          <td>Un árbol único que empieza en <code>/</code>; los discos se montan dentro.</td>
+        </tr>
+        <tr>
+          <td>Permisos</td>
+          <td>Cuentas, UAC y ACL de NTFS.</td>
+          <td>UID/GID, bits POSIX, <code>sudo</code> y polkit.</td>
+        </tr>
+        <tr>
+          <td>Drivers</td>
+          <td>Los instala el fabricante.</td>
+          <td>Vienen en el kernel o como módulos empaquetados.</td>
+        </tr>
+        <tr>
+          <td>Arranque</td>
+          <td>Firmware → Boot Manager → NT.</td>
+          <td>Firmware → GRUB → kernel + initramfs → systemd.</td>
+        </tr>
+        <tr>
+          <td>Terminal</td>
+          <td>Opcional (CMD, PowerShell).</td>
+          <td>Ciudadana de primera: todo el sistema es scriptable.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">La idea clave</span>
+    <p>
+      El escritorio no es el sistema. Si Plasma se rompe, el sistema sigue funcionando y puedes
+      entrar por una TTY o restaurar la configuración. Si el sistema se rompe, el escritorio no
+      existe, pero tus datos siguen en <code>/home</code>.
+    </p>
+  </div>
+
+  <h3 id="c01-2">1.2 Kernel, userland y distribución</h3>
+  <p>
+    Tres palabras que se usan como sinónimos y no lo son. El <strong>kernel</strong> es el programa
+    que habla con el hardware: planifica procesos, gestiona memoria, expone el sistema de archivos
+    virtual y atiende las llamadas al sistema. El <strong>userland</strong> es todo lo que corre por
+    encima: <code>glibc</code>, <code>bash</code>, <code>coreutils</code>, <code>systemd</code>. La
+    <strong>distribución</strong> empaqueta kernel + userland + repositorios + instalador +
+    políticas y decide los valores por defecto.
+  </p>
+
+<pre data-nocopy><code>Hardware
+  └─ kernel Linux        drivers, scheduler, memoria, syscalls, red, VFS
+       └─ userland      glibc, coreutils, systemd, bash, utilidades
+            └─ sesión   Wayland + KWin + plasmashell
+                 └─ apps  navegador, IDE, terminal, contenedores</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Kernel</th><th>Distribución</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Drivers, scheduler, memoria, red, VFS, syscalls, namespaces, cgroups.</td>
+          <td>Repositorios, paquetes, instalador, SELinux, firewalld, temas, soporte y cadencia.</td>
+        </tr>
+        <tr>
+          <td>Lo desarrolla la comunidad del kernel; lo publica Linus Torvalds.</td>
+          <td>Fedora, Ubuntu, Debian, Arch, openSUSE, RHEL, etc.</td>
+        </tr>
+        <tr>
+          <td>Una versión cada pocas semanas.</td>
+          <td>Una versión cada 6 meses (Fedora) o cada 2 años (Debian estable).</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Qué kernel y qué distribución estás usando</span>
+$ uname -r
+6.17.5-200.fc44.x86_64
+
+$ cat /etc/os-release
+NAME="Fedora Linux"
+VERSION="44 (KDE Plasma Desktop Edition)"
+ID=fedora
+VERSION_ID=44</code></pre>
+
+  <p>
+    Cuando alguien dice «uso Linux», en realidad usa una distribución concreta. La compatibilidad
+    de paquetes, las rutas y los comandos de administración dependen de esa elección.
+  </p>
+
+  <h3 id="c01-3">1.3 Sistema de archivos (FHS)</h3>
+  <p>
+    Linux no tiene letras de unidad. Todo cuelga de un único árbol con raíz en <code>/</code>, y los
+    discos adicionales se montan en directorios. La estructura estándar se llama
+    <strong>FHS</strong> (<em>Filesystem Hierarchy Standard</em>) y es sorprendentemente estable:
+    aprenderla una vez sirve en cualquier distribución.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Ruta</th><th>Qué contiene</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>Raíz del árbol. No es «la unidad C»: es el punto de montaje principal.</td></tr>
+        <tr><td><code>/usr/bin</code></td><td>Ejecutables del sistema y de paquetes. <code>/bin</code> es un enlace simbólico a <code>/usr/bin</code>.</td></tr>
+        <tr><td><code>/usr/lib</code></td><td>Bibliotecas compartidas y datos de programas.</td></tr>
+        <tr><td><code>/usr/local</code></td><td>Software instalado fuera del gestor de paquetes (compilado a mano).</td></tr>
+        <tr><td><code>/opt</code></td><td>Paquetes autocontenidos de terceros, con su propio árbol.</td></tr>
+        <tr><td><code>/etc</code></td><td>Configuración del sistema, en texto plano.</td></tr>
+        <tr><td><code>/home/&lt;usuario&gt;</code></td><td>Datos y configuración de cada usuario. Es tu <code>C:\Users</code>.</td></tr>
+        <tr><td><code>/root</code></td><td>Home del usuario root. No está dentro de <code>/home</code>.</td></tr>
+        <tr><td><code>/var</code></td><td>Datos variables: logs, cachés, bases de datos, colas de impresión.</td></tr>
+        <tr><td><code>/tmp</code></td><td>Temporales. Se limpia al arrancar o por antigüedad.</td></tr>
+        <tr><td><code>/boot</code></td><td>Kernel, initramfs y configuración de GRUB.</td></tr>
+        <tr><td><code>/boot/efi</code></td><td>Partición EFI (FAT32) compartida con el firmware y, si existe, con Windows.</td></tr>
+        <tr><td><code>/dev</code></td><td>Dispositivos como archivos: <code>/dev/nvme0n1</code>, <code>/dev/tty</code>.</td></tr>
+        <tr><td><code>/proc</code>, <code>/sys</code></td><td>Interfaces virtuales al kernel: procesos, CPU, memoria, hardware.</td></tr>
+        <tr><td><code>/run</code></td><td>Estado efímero de la sesión actual (PIDs, sockets).</td></tr>
+        <tr><td><code>/mnt</code>, <code>/media</code></td><td>Puntos de montaje manuales y extraíbles.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Los datos de usuario siguen la especificación <strong>XDG Base Directory</strong>. Esto importa
+    porque casi cualquier aplicación de escritorio guarda ahí su configuración:
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Ruta</th><th>Contenido</th><th class="win">Equivalente Windows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>~/.config</code></td><td>Configuración de aplicaciones.</td><td><code>%APPDATA%</code></td></tr>
+        <tr><td><code>~/.local/share</code></td><td>Datos de aplicaciones, temas, Flatpaks de usuario.</td><td><code>%LOCALAPPDATA%</code></td></tr>
+        <tr><td><code>~/.local/state</code></td><td>Estado persistente (historial, sesiones).</td><td>—</td></tr>
+        <tr><td><code>~/.cache</code></td><td>Caché reconstruible. Se puede borrar.</td><td><code>%TEMP%</code></td></tr>
+        <tr><td><code>~/.local/bin</code></td><td>Ejecutables propios del usuario.</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Ver la raíz y los montajes reales</span>
+$ ls /
+$ findmnt --real
+$ df -hT
+
+<span class="c"># /bin es un enlace a /usr/bin (usrmerge)</span>
+$ ls -l /bin
+lrwxrwxrwx. 1 root root 7 ... /bin -&gt; usr/bin
+
+<span class="c"># Los archivos ocultos empiezan con punto</span>
+$ ls -la ~ | head</code></pre>
+
+  <div class="callout">
+    <span class="t">Dos detalles que sorprenden</span>
+    <p>
+      El sistema de archivos distingue mayúsculas: <code>README</code> y <code>readme</code> son
+      archivos distintos. Y las extensiones no determinan si algo es ejecutable: lo determina el bit
+      de ejecución y, en scripts, la primera línea (<em>shebang</em>).
+    </p>
+  </div>
+
+  <h3 id="c01-4">1.4 Usuarios, permisos y privilegios</h3>
+  <p>
+    Linux es multiusuario desde el diseño. Cada proceso corre con un <strong>UID</strong> y un
+    <strong>GID</strong>; el UID 0 es <code>root</code>, que puede hacer cualquier cosa. Tu usuario
+    pertenece a grupos (en Fedora, <code>wheel</code> habilita <code>sudo</code>) y los permisos se
+    aplican a tres ámbitos: propietario, grupo y resto.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Bit</th><th>Sobre un archivo</th><th>Sobre un directorio</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>r</code></td><td>Leer el contenido.</td><td>Listar las entradas (<code>ls</code>).</td></tr>
+        <tr><td><code>w</code></td><td>Modificar el contenido.</td><td>Crear, renombrar o borrar entradas.</td></tr>
+        <tr><td><code>x</code></td><td>Ejecutarlo.</td><td>Atravesarlo (<code>cd</code>, acceder a rutas internas).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Octal</th><th>Símbolico</th><th>Uso típico</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>644</code></td><td><code>rw-r--r--</code></td><td>Archivos normales: dueño edita, resto lee.</td></tr>
+        <tr><td><code>600</code></td><td><code>rw-------</code></td><td>Secretos: claves SSH, tokens, <code>.env</code>.</td></tr>
+        <tr><td><code>755</code></td><td><code>rwxr-xr-x</code></td><td>Directorios y scripts ejecutables.</td></tr>
+        <tr><td><code>700</code></td><td><code>rwx------</code></td><td>Directorios privados como <code>~/.ssh</code>.</td></tr>
+        <tr><td><code>664</code></td><td><code>rw-rw-r--</code></td><td>Archivo editable por el grupo.</td></tr>
+        <tr><td><code>775</code></td><td><code>rwxrwxr-x</code></td><td>Directorio compartido con el grupo.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Identidad y grupos</span>
+$ id
+uid=1000(jose) gid=1000(jose) groups=1000(jose),10(wheel),975(libvirt)
+
+<span class="c"># Permisos de una clave SSH: deben ser 600</span>
+$ ls -l ~/.ssh
+-rw-------. 1 jose jose 411 ... id_ed25519
+-rw-r--r--. 1 jose jose 102 ... id_ed25519.pub
+
+$ chmod 600 ~/.ssh/id_ed25519
+$ chown jose:jose archivo.txt
+
+<span class="c"># ACL, para permisos más finos que los bits POSIX</span>
+$ getfacl proyecto/
+$ setfacl -m u:ana:rwx proyecto/</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Cuenta Administrador</td><td><code>root</code> (UID 0)</td></tr>
+        <tr><td>UAC</td><td><code>sudo</code> y polkit</td></tr>
+        <tr><td>«Ejecutar como administrador»</td><td><code>sudo comando</code> o diálogo de polkit</td></tr>
+        <tr><td><code>icacls</code></td><td><code>chmod</code>, <code>chown</code>, <code>setfacl</code></td></tr>
+        <tr><td>Propiedades → Seguridad</td><td><code>ls -l</code>, <code>getfacl</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <span class="t">Errores clásicos</span>
+    <p>
+      <code>chmod 777</code> no arregla permisos: los desactiva. <code>sudo su</code> abre una shell
+      root permanente donde un error de tipeo es irreversible. Y ejecutar aplicaciones gráficas con
+      <code>sudo</code> puede dejar archivos de configuración con dueño root en tu home.
+    </p>
+  </div>
+
+  <p>
+    <code>sudo</code> eleva un comando concreto, pide tu contraseña y registra la operación. En el
+    escritorio, polkit cumple un papel similar: una aplicación sin privilegios pide autorización al
+    servicio del sistema mediante un diálogo, sin que tú tengas que abrir una terminal.
+  </p>
+</section>
+<div id="c01b">
+  <h3 id="c01-5">1.5 Procesos, servicios y systemd</h3>
+  <p>
+    Cada programa en ejecución es un proceso con un <strong>PID</strong> y un proceso padre. Los
+    procesos se comunican con señales: <code>SIGTERM</code> pide terminar, <code>SIGKILL</code>
+    obliga, <code>SIGHUP</code> indica recargar configuración. Los servicios del sistema los
+    gestiona <strong>systemd</strong>, que además monta sistemas de archivos, configura la red,
+    arranca la sesión gráfica y recoge los logs.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Unidad de systemd</th><th>Para qué sirve</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>.service</code></td><td>Un proceso gestionado (servidor web, base de datos, SSH).</td></tr>
+        <tr><td><code>.socket</code></td><td>Activar un servicio cuando alguien se conecta a un socket.</td></tr>
+        <tr><td><code>.timer</code></td><td>Tareas programadas, equivalente al Programador de tareas.</td></tr>
+        <tr><td><code>.target</code></td><td>Agrupa unidades y define estados (<code>multi-user.target</code>, <code>graphical.target</code>).</td></tr>
+        <tr><td><code>.mount</code></td><td>Puntos de montaje declarativos.</td></tr>
+        <tr><td><code>.path</code></td><td>Vigilar archivos o directorios y reaccionar a cambios.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Administrador de tareas</td><td><code>top</code>, <code>htop</code>, System Monitor de KDE</td></tr>
+        <tr><td><code>services.msc</code></td><td><code>systemctl</code></td></tr>
+        <tr><td>Programador de tareas</td><td><code>systemd</code> timers o <code>cron</code></td></tr>
+        <tr><td>Visor de eventos</td><td><code>journalctl</code>, <code>dmesg</code></td></tr>
+        <tr><td>Carpeta de inicio</td><td><code>~/.config/autostart/*.desktop</code></td></tr>
+        <tr><td><code>sc create</code></td><td>Un archivo <code>.service</code> en <code>/etc/systemd/system</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Procesos ordenados por CPU</span>
+$ ps -eo pid,ppid,stat,comm --sort=-%cpu | head
+
+<span class="c"># Estado de un servicio y de todo lo que falló</span>
+$ systemctl status sshd
+$ systemctl --failed
+
+<span class="c"># Tareas programadas activas</span>
+$ systemctl list-timers --all
+
+<span class="c"># Logs del servicio en el arranque actual</span>
+$ journalctl -u sshd -b --no-pager
+
+<span class="c"># Enviar una señal a un proceso</span>
+$ kill -TERM 1234
+$ pkill -f "python.*servidor"</code></pre>
+
+  <div class="callout warn">
+    <span class="t">start no es enable</span>
+    <p>
+      <code>systemctl start</code> arranca ahora; <code>systemctl enable</code> lo arranca en cada
+      boot; <code>systemctl enable --now</code> hace ambas cosas. <code>disable</code> no detiene el
+      servicio en ejecución, solo evita que arranque la próxima vez.
+    </p>
+  </div>
+
+  <h3 id="c01-6">1.6 Todo es un archivo</h3>
+  <p>
+    La frase es una simplificación, pero describe una idea potente: dispositivos, información del
+    kernel, sockets y tuberías se exponen mediante una interfaz común de lectura y escritura. Eso
+    permite usar las mismas herramientas (<code>cat</code>, <code>grep</code>, <code>less</code>)
+    sobre cosas que en Windows requerirían una API específica.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Descriptor</th><th>Nombre</th><th>Uso</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td><code>stdin</code></td><td>Entrada estándar.</td></tr>
+        <tr><td><code>1</code></td><td><code>stdout</code></td><td>Salida normal.</td></tr>
+        <tr><td><code>2</code></td><td><code>stderr</code></td><td>Errores y diagnóstico.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Sintaxis</th><th>Efecto</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>cmd &gt; archivo</code></td><td>Redirige stdout y trunca el archivo.</td></tr>
+        <tr><td><code>cmd &gt;&gt; archivo</code></td><td>Redirige stdout y agrega al final.</td></tr>
+        <tr><td><code>cmd 2&gt; errores.log</code></td><td>Redirige solo stderr.</td></tr>
+        <tr><td><code>cmd &gt; todo.log 2&gt;&amp;1</code></td><td>stdout y stderr al mismo archivo.</td></tr>
+        <tr><td><code>cmd &lt; entrada.txt</code></td><td>Lee stdin desde un archivo.</td></tr>
+        <tr><td><code>cmd1 | cmd2</code></td><td>Conecta stdout de <code>cmd1</code> con stdin de <code>cmd2</code>.</td></tr>
+        <tr><td><code>cmd | tee archivo</code></td><td>Muestra y guarda a la vez.</td></tr>
+        <tr><td><code>cmd &amp;&amp; otro</code></td><td>Ejecuta <code>otro</code> solo si el primero tuvo éxito.</td></tr>
+        <tr><td><code>cmd || otro</code></td><td>Ejecuta <code>otro</code> solo si el primero falló.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Guardar y concatenar</span>
+$ echo "hola" &gt; nota.txt
+$ echo "mundo" &gt;&gt; nota.txt
+
+<span class="c"># Separar salida y errores</span>
+$ ./compilar.sh &gt; build.log 2&gt; build.err
+
+<span class="c"># Leer información del kernel como si fuera un archivo</span>
+$ grep -m1 "model name" /proc/cpuinfo
+
+<span class="c"># Un pipeline real: errores más frecuentes del arranque</span>
+$ journalctl -b --no-pager \
+    | grep -i "error" \
+    | sort \
+    | uniq -c \
+    | sort -rn \
+    | head
+
+<span class="c"># Procesar nombres con espacios sin romper nada</span>
+$ find . -name "*.log" -print0 | xargs -0 rm -v</code></pre>
+
+  <p>
+    El código de salida de un comando está en <code>$?</code>: <code>0</code> significa éxito y
+    cualquier otro valor, error. Es la base de los scripts robustos y de <code>set -e</code>.
+  </p>
+
+  <h3 id="c01-7">1.7 Binarios y enlaces dinámicos</h3>
+  <p>
+    Windows usa el formato <strong>PE/COFF</strong> (<code>.exe</code>, <code>.dll</code>) y Linux
+    usa <strong>ELF</strong>. Las extensiones en Linux son una convención, no un requisito: un
+    ejecutable puede llamarse <code>mi-script</code> sin sufijo. Lo que importa es el bit de
+    ejecución y, en el caso de los scripts, la primera línea.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Linux</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>.exe</code></td><td>ELF ejecutable, sin extensión obligatoria.</td></tr>
+        <tr><td><code>.dll</code></td><td><code>.so</code> (shared object), con versiones en el nombre.</td></tr>
+        <tr><td><code>.lib</code></td><td><code>.a</code> (estático) o <code>.so</code> (dinámico).</td></tr>
+        <tr><td>Loader de Windows</td><td><code>ld-linux-x86-64.so.2</code>.</td></tr>
+        <tr><td><code>.bat</code>, <code>.ps1</code></td><td>Scripts con shebang: <code>#!/usr/bin/env bash</code>.</td></tr>
+        <tr><td>Doble clic / <code>CreateProcess</code></td><td><code>execve()</code> tras verificar el bit <code>x</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Tipo real de un archivo, sin mirar la extensión</span>
+$ file /usr/bin/bash
+/usr/bin/bash: ELF 64-bit LSB pie executable, x86-64, dynamically linked, ...
+
+<span class="c"># Bibliotecas compartidas que necesita un binario</span>
+$ ldd /usr/bin/ls
+    linux-vdso.so.1 =&gt;  (0x00007ffd...)
+    libselinux.so.1 =&gt; /lib64/libselinux.so.1
+    libc.so.6 =&gt; /lib64/libc.so.6
+
+<span class="c"># Un script empieza por el intérprete que debe ejecutarlo</span>
+$ head -n1 ~/bin/saluda
+#!/usr/bin/env bash
+
+<span class="c"># Dónde se busca un comando</span>
+$ command -v code
+/usr/bin/code
+$ echo $PATH
+/home/jose/.local/bin:/usr/local/bin:/usr/bin:/bin</code></pre>
+
+  <div class="callout">
+    <span class="t">Compatibilidad</span>
+    <p>
+      Un binario ELF no se ejecuta en Windows y uno PE no se ejecuta en Linux. Wine y Proton
+      implementan las APIs de Windows para ejecutar juegos y algunas aplicaciones; WSL hace lo
+      contrario: expone un kernel Linux dentro de Windows. Ninguna de las dos cosas convierte a
+      Linux en Windows.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">Cuidado con ldd</span>
+    <p>
+      <code>ldd</code> puede ejecutar código del binario que analiza. No lo uses sobre ejecutables
+      que no confías; en ese caso, <code>readelf -d</code> o <code>objdump -p</code> son más
+      seguros.
+    </p>
+  </div>
+</div>
+
+<section id="c02" aria-labelledby="t02">
+  <h2 id="t02"><span class="num">02</span> Fedora</h2>
+  <p class="lead">
+    Fedora es una distribución patrocinada por Red Hat, comunitaria en su gobernanza y upstream de
+    RHEL. Su personalidad: tecnología reciente con valores por defecto conservadores y buena
+    integración.
+  </p>
+
+  <h3 id="c02-1">2.1 Qué es Fedora</h3>
+  <p>
+    Fedora es el laboratorio donde Red Hat y la comunidad prueban tecnologías que más tarde llegan
+    a RHEL: systemd, Wayland, PipeWire, SELinux, Btrfs, cgroups v2, DNF5. Eso la coloca en un punto
+    intermedio entre Arch (rolling release, tú lo ensamblas) y Debian estable (software antiguo a
+    cambio de estabilidad). Fedora es <em>leading edge</em>, no <em>bleeding edge</em>.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Distribución</th><th>Modelo</th><th>Paquetes</th><th>Perfil</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Fedora</td><td>Versión cada 6 meses, soporte ~13 meses.</td><td>DNF5 / RPM + Flatpak.</td><td>Tecnología reciente con integración cuidada.</td></tr>
+        <tr><td>Ubuntu LTS</td><td>Cada 2 años, soporte 5–10 años.</td><td>APT / DEB + Snap.</td><td>Estabilidad y ecosistema corporativo.</td></tr>
+        <tr><td>Debian estable</td><td>Cuando está listo, soporte largo.</td><td>APT / DEB.</td><td>Estabilidad por encima de novedades.</td></tr>
+        <tr><td>Arch Linux</td><td>Rolling release.</td><td>pacman / PKGBUILD.</td><td>Control total; tú construyes el sistema.</td></tr>
+        <tr><td>RHEL / CentOS Stream</td><td>10 años / rolling intermedio.</td><td>DNF / RPM.</td><td>Producción empresarial.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    La relación con RHEL importa en ambos sentidos. Fedora recibe recursos e infraestructura; RHEL
+    recibe código probado. CentOS Stream es el puente: la rama pública donde se estabiliza lo que
+    Fedora ya adoptó.
+  </p>
+
+  <div class="callout tip">
+    <span class="t">Por qué Fedora para un desarrollador</span>
+    <p>
+      Toolchains recientes, kernel nuevo (buen soporte de hardware), SELinux activo por defecto,
+      contenedores de primera clase con Podman y una comunidad upstream que documenta lo que
+      mantiene. Si algo funciona en Fedora, probablemente funcione en RHEL y en la nube.
+    </p>
+  </div>
+</section>
+<div id="c02b">
+  <h3 id="c02-2">2.2 Ediciones, spins y escritorios atómicos</h3>
+  <p>
+    Fedora no es un solo producto. Hay ediciones oficiales con soporte de primer nivel, spins
+    comunitarios con otro escritorio y variantes atómicas con el sistema de solo lectura. Para un
+    escritorio de desarrollo, la elección relevante es <strong>Fedora KDE Plasma Desktop</strong>,
+    que desde Fedora 42 es una edición oficial y no solo un spin.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Variante</th><th>Escritorio</th><th>Modelo</th><th>Cuándo elegirla</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Fedora KDE Plasma Desktop</td><td>Plasma 6</td><td>Tradicional (RPM + DNF5)</td><td>Personalización, familiaridad con Windows, apps Qt.</td></tr>
+        <tr><td>Fedora Workstation</td><td>GNOME</td><td>Tradicional</td><td>Flujo de trabajo GNOME, hardware táctil, simplicidad.</td></tr>
+        <tr><td>Fedora Kinoite</td><td>Plasma 6</td><td>Atómico (<code>rpm-ostree</code>)</td><td>Inmutabilidad, rollback del sistema completo, servidores de escritorio.</td></tr>
+        <tr><td>Fedora Silverblue</td><td>GNOME</td><td>Atómico</td><td>Lo mismo que Kinoite, con GNOME.</td></tr>
+        <tr><td>Fedora Server / CoreOS</td><td>—</td><td>Tradicional / atómico</td><td>Servidores, contenedores, infraestructura.</td></tr>
+        <tr><td>Spins</td><td>Xfce, Cinnamon, MATE, LXQt, i3, Sway…</td><td>Tradicional</td><td>Equipos modestos o flujos específicos.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Los escritorios atómicos funcionan distinto: la imagen base es inmutable y las capas se aplican
+    con <code>rpm-ostree</code>. Cada actualización crea una nueva generación; si algo falla, se
+    arranca la anterior desde GRUB. Las aplicaciones de usuario van por Flatpak o contenedores. La
+    contrapartida es menos flexibilidad para modificar el sistema y una curva de aprendizaje
+    adicional.
+  </p>
+
+  <div class="callout">
+    <span class="t">Recomendación</span>
+    <p>
+      Si vienes de Windows y quieres aprender Linux de forma directa, empieza con la edición
+      tradicional. Los escritorios atómicos son excelentes, pero añaden una capa de indirección que
+      conviene entender después.
+    </p>
+  </div>
+
+  <h3 id="c02-3">2.3 Ciclo de versiones y actualizaciones</h3>
+  <p>
+    Fedora publica una versión nueva aproximadamente cada seis meses, en abril y octubre. Cada
+    versión recibe actualizaciones durante unos 13 meses: mientras sea la actual y durante el ciclo
+    de la siguiente. No es un rolling release, pero el kernel y los drivers avanzan dentro de cada
+    versión.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Versión</th><th>Publicación</th><th>Soporte aproximado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>N</td><td>Octubre</td><td>Hasta ~diciembre del año siguiente</td></tr>
+        <tr><td>N+1</td><td>Abril</td><td>Hasta ~junio del año siguiente</td></tr>
+        <tr><td>N+2</td><td>Octubre</td><td>Hasta ~diciembre del año siguiente</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Actualizar la versión actual (parches y kernels)</span>
+$ sudo dnf upgrade --refresh
+
+<span class="c"># Saltar a la siguiente release</span>
+$ sudo dnf system-upgrade download --releasever=45
+$ sudo dnf system-upgrade reboot</code></pre>
+
+  <p>
+    El salto de versión se hace con <code>system-upgrade</code>: descarga todos los paquetes, los
+    aplica en un entorno offline durante el reinicio y conserva el kernel anterior. Si el subcomando
+    no existe, falta el plugin correspondiente a tu versión de DNF
+    (<code>dnf-plugin-system-upgrade</code> o <code>dnf5-plugin-system-upgrade</code>).
+  </p>
+
+  <div class="callout warn">
+    <span class="t">Antes de saltar de versión</span>
+    <p>
+      Haz una copia de seguridad, lee las notas de la release y actualiza primero la versión actual.
+      No saltes más de una release a la vez: Fedora está pensada para upgrades incrementales.
+    </p>
+  </div>
+
+  <h3 id="c02-4">2.4 Filosofía y valores por defecto</h3>
+  <p>
+    Fedora sigue una política <em>upstream-first</em>: los parches se envían a los proyectos
+    originales en lugar de acumularse en la distribución. Eso reduce la deuda técnica y explica por
+    qué las versiones de software son recientes. También implica que Fedora cambia de tecnología
+    cuando el upstream lo hace, a veces antes que otras distribuciones.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Área</th><th>Valor por defecto en Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sesión gráfica</td><td>Wayland (X11 disponible en el login)</td></tr>
+        <tr><td>Audio</td><td>PipeWire + WirePlumber</td></tr>
+        <tr><td>Seguridad</td><td>SELinux en modo <em>enforcing</em>, firewalld activo</td></tr>
+        <tr><td>Almacenamiento</td><td>Btrfs con subvolúmenes y zram para swap</td></tr>
+        <tr><td>Paquetes</td><td>DNF5 + RPM; Flatpak para apps de escritorio</td></tr>
+        <tr><td>Contenedores</td><td>Podman rootless (sin daemon)</td></tr>
+        <tr><td>Init</td><td>systemd</td></tr>
+        <tr><td>Arranque</td><td>GRUB 2 con Secure Boot firmado</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    El software libre está en los repositorios principales. Lo que tiene patentes o licencias
+    incompatibles —códecs, drivers NVIDIA, Steam— vive en RPM Fusion, que se activa a mano. Fedora
+    no oculta esa decisión: te da el sistema base y tú eliges qué añadir.
+  </p>
+</div>
+
+<section id="c03" aria-labelledby="t03">
+  <h2 id="t03"><span class="num">03</span> Gestores de paquetes</h2>
+  <p class="lead">
+    Aquí está la diferencia práctica más grande con Windows. Un gestor de paquetes no es una tienda
+    de aplicaciones: es un sistema de resolución de dependencias, verificación criptográfica y
+    transacciones atómicas.
+  </p>
+
+  <h3 id="c03-1">3.1 Anatomía de un paquete y un repositorio</h3>
+  <p>
+    Un paquete RPM contiene metadatos (nombre, versión, release, arquitectura, licencia,
+    dependencias, scripts de instalación) y un payload comprimido con los archivos. Un repositorio
+    es un servidor HTTP con esos paquetes, índices XML y una clave GPG. DNF descarga los índices,
+    resuelve el grafo de dependencias con un solver SAT y ejecuta una transacción.
+  </p>
+
+<pre data-nocopy><code>repositorio
+  ├─ repodata/primary.xml      metadatos de paquetes
+  ├─ repodata/filelists.xml    qué archivo pertenece a qué paquete
+  ├─ repodata/*.xml.gz         índices comprimidos
+  ├─ Packages/*.rpm            payloads
+  └─ repomd.xml + firma GPG    integridad del índice</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Capa</th><th>Herramienta</th><th>Qué gestiona</th><th>Ámbito</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Sistema</td><td>DNF5 + RPM</td><td>Kernel, bibliotecas, servicios, toolchains del sistema.</td><td>Root, global.</td></tr>
+        <tr><td>Aplicación</td><td>Flatpak</td><td>Apps de escritorio con runtime propio y sandbox.</td><td>Usuario o sistema.</td></tr>
+        <tr><td>Lenguaje</td><td>pip, npm, cargo, gem</td><td>Dependencias de un proyecto concreto.</td><td>Entorno virtual o proyecto.</td></tr>
+        <tr><td>Contenedor</td><td>Podman, Toolbox, Distrobox</td><td>Entornos completos y reproducibles.</td><td>Usuario, aislado.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    La regla es no mezclar capas. Instalar una biblioteca de Python con <code>sudo pip</code> puede
+    sobrescribir archivos que pertenecen a RPM y romper el gestor de paquetes. Si el paquete existe
+    en los repositorios, se instala con DNF; si es de un proyecto, va en un entorno virtual.
+  </p>
+
+<pre><code><span class="c"># Metadatos, archivos y dependencias de un paquete instalado</span>
+$ rpm -qi bash
+$ rpm -ql bash | head
+$ rpm -q --requires bash
+
+<span class="c"># ¿Qué paquete proporciona este archivo?</span>
+$ dnf provides '*/bin/rg'
+
+<span class="c"># Dependencias resueltas antes de instalar</span>
+$ dnf repoquery --requires ripgrep
+
+<span class="c"># Caché y base de datos de DNF</span>
+$ ls /var/cache/dnf
+$ ls /var/lib/dnf</code></pre>
+
+  <div class="callout">
+    <span class="t">Transacción, no instalador</span>
+    <p>
+      DNF calcula el conjunto completo de cambios, lo muestra y solo entonces aplica. Si algo falla,
+      la transacción se puede revertir con <code>dnf history undo</code>. Eso es muy distinto de
+      ejecutar cinco instaladores <code>.exe</code> que modifican el sistema sin coordinarse.
+    </p>
+  </div>
+</section>
+<div id="c03b">
+  <h3 id="c03-2">3.2 DNF5 en la práctica</h3>
+  <p>
+    DNF5 es el gestor de paquetes de Fedora desde la versión 41. Sustituye a DNF4, usa libsolv para
+    resolver dependencias y ofrece una CLI más rápida y consistente. El binario es <code>dnf5</code>,
+    pero <code>dnf</code> sigue funcionando como alias.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Acción</th><th>Comando</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Buscar</td><td><code>dnf search &lt;texto&gt;</code></td></tr>
+        <tr><td>Ver detalles</td><td><code>dnf info &lt;paquete&gt;</code></td></tr>
+        <tr><td>Instalar</td><td><code>sudo dnf install &lt;paquete&gt;</code></td></tr>
+        <tr><td>Eliminar</td><td><code>sudo dnf remove &lt;paquete&gt;</code></td></tr>
+        <tr><td>Actualizar todo</td><td><code>sudo dnf upgrade --refresh</code></td></tr>
+        <tr><td>Listar instalados</td><td><code>dnf list --installed</code></td></tr>
+        <tr><td>Quién provee un archivo</td><td><code>dnf provides '*/bin/rg'</code></td></tr>
+        <tr><td>Archivos de un paquete</td><td><code>dnf repoquery -l &lt;paquete&gt;</code></td></tr>
+        <tr><td>Historial</td><td><code>dnf history</code></td></tr>
+        <tr><td>Revertir una transacción</td><td><code>sudo dnf history undo &lt;id&gt;</code></td></tr>
+        <tr><td>Grupos</td><td><code>sudo dnf group install "Development Tools"</code></td></tr>
+        <tr><td>Repositorios</td><td><code>dnf repolist --all</code></td></tr>
+        <tr><td>Limpiar caché</td><td><code>sudo dnf clean all</code></td></tr>
+        <tr><td>Activar/desactivar repo</td><td><code>sudo dnf config-manager setopt &lt;repo&gt;.enabled=0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Instalar herramientas de desarrollo y utilidades</span>
+$ sudo dnf install ripgrep fd-find bat git gh
+$ sudo dnf group install "Development Tools"
+
+<span class="c"># Buscar sin distinguir mayúsculas y ver qué ofrece</span>
+$ dnf search json
+$ dnf info ripgrep
+
+<span class="c"># Actualizar índices y sistema</span>
+$ sudo dnf upgrade --refresh
+
+<span class="c"># Ver y revertir una transacción</span>
+$ dnf history
+$ sudo dnf history undo 42
+
+<span class="c"># Instalar una versión concreta o bajar sin instalar</span>
+$ sudo dnf install ripgrep-14.1.1-1.fc44
+$ sudo dnf install --downloadonly --destdir=/tmp/rpms ripgrep</code></pre>
+
+  <p>
+    Opciones que conviene conocer: <code>-y</code> responde sí, <code>--best</code> falla si no
+    puede instalar la versión más reciente, <code>--allowerasing</code> permite eliminar paquetes
+    conflictivos y <code>--refresh</code> fuerza la actualización de metadatos. Usa
+    <code>--allowerasing</code> con cuidado: puede quitar algo que necesitas.
+  </p>
+
+  <div class="callout warn">
+    <span class="t">DNF no es pip</span>
+    <p>
+      No uses <code>sudo pip install</code> ni <code>sudo npm install -g</code> para instalar
+      herramientas del sistema. Si el paquete existe en Fedora, va por DNF; si es una herramienta de
+      un proyecto, va en un entorno virtual, <code>pipx</code> o <code>~/.local/bin</code>.
+    </p>
+  </div>
+
+  <h3 id="c03-3">3.3 RPM Fusion, COPR y terceros</h3>
+  <p>
+    Los repositorios oficiales de Fedora solo incluyen software libre compatible. RPM Fusion añade
+    lo que queda fuera por licencias o patentes: códecs multimedia, drivers NVIDIA, Steam,
+    VirtualBox y algunas utilidades. COPR es el servicio de compilación comunitaria: útil para
+    paquetes que aún no llegaron a los repositorios oficiales, pero sin las mismas garantías.
+  </p>
+
+<pre><code><span class="c"># Activar RPM Fusion (free + nonfree)</span>
+$ sudo dnf install \
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+<span class="c"># Códecs y multimedia</span>
+$ sudo dnf group install multimedia
+$ sudo dnf install libavcodec-freeworld
+
+<span class="c"># NVIDIA propietario (ver capítulo 6 para Secure Boot)</span>
+$ sudo dnf install akmod-nvidia xorg-x11-drv-nvidia-cuda
+
+<span class="c"># COPR: confiar en un proyecto concreto</span>
+$ sudo dnf copr enable user/proyecto
+$ sudo dnf install paquete-del-copr</code></pre>
+
+  <p>
+    Cada repositorio que añades es una fuente de paquetes que se instalan como root. La firma GPG
+    protege la integridad, pero no la intención del mantenedor. Antes de activar un COPR, revisa
+    quién lo mantiene, cuándo se actualizó y qué archivos instala.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Repositorio</th><th>Confianza</th><th>Uso típico</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Fedora oficial</td><td>Alta</td><td>Todo el sistema base.</td></tr>
+        <tr><td>RPM Fusion</td><td>Alta</td><td>Códecs, NVIDIA, Steam.</td></tr>
+        <tr><td>COPR</td><td>Variable</td><td>Paquetes en desarrollo o nicho.</td></tr>
+        <tr><td>Vendor (Docker, Microsoft, Google)</td><td>Media</td><td>Software propietario con su propio ciclo.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c03-4">3.4 Flatpak y Flathub</h3>
+  <p>
+    Flatpak empaqueta aplicaciones de escritorio con sus dependencias y las ejecuta en un sandbox
+    (bubblewrap). Cada app declara qué necesita —red, Wayland, X11, acceso a archivos, dispositivos—
+    y el sistema lo concede mediante <em>portals</em>. El resultado: una app no puede leer tu home
+    entero solo porque sí.
+  </p>
+
+  <p>
+    Un Flatpak se compone de la aplicación, uno o varios <strong>runtimes</strong> compartidos
+    (por ejemplo <code>org.kde.Platform</code>) y las extensiones que necesita. Los runtimes se
+    reutilizan entre apps, así que el espacio no crece de forma lineal.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Acción</th><th>Comando</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Añadir Flathub</td><td><code>flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo</code></td></tr>
+        <tr><td>Buscar</td><td><code>flatpak search &lt;texto&gt;</code></td></tr>
+        <tr><td>Instalar</td><td><code>flatpak install flathub &lt;app.id&gt;</code></td></tr>
+        <tr><td>Ejecutar</td><td><code>flatpak run &lt;app.id&gt;</code></td></tr>
+        <tr><td>Listar</td><td><code>flatpak list --app</code></td></tr>
+        <tr><td>Actualizar</td><td><code>flatpak update</code></td></tr>
+        <tr><td>Desinstalar</td><td><code>flatpak uninstall &lt;app.id&gt;</code></td></tr>
+        <tr><td>Limpiar runtimes huérfanos</td><td><code>flatpak uninstall --unused</code></td></tr>
+        <tr><td>Ver permisos</td><td><code>flatpak permissions</code></td></tr>
+        <tr><td>Conceder acceso</td><td><code>flatpak override --user --filesystem=~/Proyectos &lt;app.id&gt;</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Flathub y una app de KDE</span>
+$ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+$ flatpak search krita
+$ flatpak install flathub org.kde.krita
+
+<span class="c"># Inspeccionar y ajustar permisos</span>
+$ flatpak info org.kde.krita
+$ flatpak permissions
+$ flatpak override --user --filesystem=home org.kde.krita
+$ flatpak override --user --nofilesystem=home org.kde.krita
+
+<span class="c"># Ubicaciones</span>
+$ ls ~/.local/share/flatpak/app
+$ ls /var/lib/flatpak/app</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Criterio</th><th>DNF</th><th>Flatpak</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Integración con el sistema</td><td>Total.</td><td>Aislada por sandbox.</td></tr>
+        <tr><td>Bibliotecas</td><td>Compartidas con el sistema.</td><td>Runtime propio por app.</td></tr>
+        <tr><td>Herramientas CLI</td><td>Natural.</td><td>Incómodo; no es su objetivo.</td></tr>
+        <tr><td>Drivers, kernel, servicios</td><td>Sí.</td><td>No.</td></tr>
+        <tr><td>Actualizaciones</td><td>Una transacción global.</td><td>Por app y runtime.</td></tr>
+        <tr><td>Apps de escritorio</td><td>Posible.</td><td>Preferido en Fedora.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <span class="t">Flatseal</span>
+    <p>
+      Si prefieres una interfaz gráfica para los permisos, instala Flatseal
+      (<code>com.github.tchx84.Flatseal</code>). Muestra exactamente qué puede ver y hacer cada
+      aplicación, sin editar overrides a mano.
+    </p>
+  </div>
+
+  <h3 id="c03-5">3.5 Matriz de decisión</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Necesitas…</th><th>Herramienta</th><th>Motivo</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Kernel, driver, biblioteca del sistema</td><td>DNF5</td><td>Integración y transacciones del sistema.</td></tr>
+        <tr><td>App de escritorio (Krita, GIMP, Spotify)</td><td>Flatpak</td><td>Sandbox, actualización independiente.</td></tr>
+        <tr><td>NVIDIA, códecs, Steam</td><td>DNF + RPM Fusion</td><td>Necesitan acceso al sistema.</td></tr>
+        <tr><td>Toolchain de un proyecto concreto</td><td>Toolbox / Distrobox</td><td>Entorno reproducible sin tocar el host.</td></tr>
+        <tr><td>Dependencias de Python/Node/Rust</td><td>venv, npm, cargo</td><td>Aislamiento por proyecto.</td></tr>
+        <tr><td>CLI escrita en Go/Rust</td><td>DNF, <code>~/.local/bin</code> o <code>cargo install</code></td><td>Sin privilegios si es posible.</td></tr>
+        <tr><td>Servicio que debe arrancar con el sistema</td><td>systemd</td><td>Gestión de unidades y logs.</td></tr>
+        <tr><td>App Windows concreta</td><td>Wine, Bottles o VM</td><td>Compatibilidad, no es lo nativo.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout danger">
+    <span class="t">La regla de oro</span>
+    <p>
+      Si un paquete existe en los repositorios de Fedora, instálalo con DNF. Si es una app de
+      escritorio, prefiere Flatpak. Si es una dependencia de tu código, no la instales en el sistema:
+      usa el gestor de tu lenguaje dentro del proyecto.
+    </p>
+  </div>
+
+  <h3 id="c03-6">3.6 Equivalentes a winget y compañía</h3>
+
+  <div class="tabs" data-tabs>
+    <div class="tablist" role="tablist" aria-label="Comparación de comandos de instalación">
+      <button type="button" role="tab" aria-selected="true" data-tab="tab-win-pkg">Windows</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="tab-fed-pkg">Fedora</button>
+    </div>
+    <div class="tabpanel" id="tab-win-pkg" role="tabpanel">
+<pre><code><span class="c"># winget</span>
+winget search ripgrep
+winget install BurntSushi.ripgrep.MSVC
+winget upgrade --all
+winget list
+winget uninstall BurntSushi.ripgrep.MSVC
+
+<span class="c"># Chocolatey / Scoop</span>
+choco install ripgrep -y
+scoop install ripgrep</code></pre>
+    </div>
+    <div class="tabpanel" id="tab-fed-pkg" role="tabpanel" hidden>
+<pre><code><span class="c"># Sistema</span>
+dnf search ripgrep
+sudo dnf install ripgrep
+sudo dnf upgrade --refresh
+dnf list --installed
+sudo dnf remove ripgrep
+
+<span class="c"># Apps de escritorio</span>
+flatpak search krita
+flatpak install flathub org.kde.krita
+flatpak update
+flatpak list --app
+flatpak uninstall org.kde.krita</code></pre>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th><th>Nota</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>winget</code></td><td><code>dnf</code> + <code>flatpak</code></td><td>Dos capas según el tipo de software.</td></tr>
+        <tr><td>Chocolatey</td><td>DNF</td><td>Instalación global con privilegios.</td></tr>
+        <tr><td>Scoop</td><td><code>~/.local/bin</code> + gestores de versión</td><td>Sin privilegios, por usuario.</td></tr>
+        <tr><td>Microsoft Store</td><td>Discover + Flathub</td><td>Apps de escritorio con sandbox.</td></tr>
+        <tr><td><code>.msi</code></td><td><code>.rpm</code></td><td>DNF gestiona el ciclo de vida.</td></tr>
+        <tr><td>Agregar o quitar programas</td><td>Discover + <code>dnf list --installed</code></td><td>Descubrimiento gráfico o CLI.</td></tr>
+        <tr><td><code>winget upgrade --all</code></td><td><code>dnf upgrade --refresh &amp;&amp; flatpak update</code></td><td>Dos comandos, dos capas.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c03-7">3.7 Actualizaciones, kernel y reinicios</h3>
+  <p>
+    Fedora actualiza el kernel con frecuencia. Conserva varias versiones instaladas para que puedas
+    arrancar una anterior desde GRUB si la nueva falla. Los módulos de terceros, como los de NVIDIA,
+    se recompilan con <code>akmods</code>; por eso una actualización de kernel puede tardar unos
+    minutos en el siguiente arranque.
+  </p>
+
+<pre><code><span class="c"># Actualización normal</span>
+$ sudo dnf upgrade --refresh
+
+<span class="c"># Actualización offline (aplicada en el reinicio)</span>
+$ sudo dnf offline-upgrade download -y
+$ sudo dnf offline-upgrade reboot
+
+<span class="c"># ¿Hace falta reiniciar?</span>
+$ sudo dnf needs-restarting -r
+
+<span class="c"># Kernels instalados y kernel actual</span>
+$ rpm -q kernel
+$ uname -r
+$ sudo grubby --info=ALL | grep -E 'index|title'
+
+<span class="c"># Actualizaciones automáticas de seguridad</span>
+$ sudo dnf install dnf-automatic
+$ sudo systemctl enable --now dnf-automatic.timer</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Situación</th><th>¿Reinicio?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Actualización de apps, navegador, IDE</td><td>No.</td></tr>
+        <tr><td>Kernel nuevo</td><td>Sí, para usarlo.</td></tr>
+        <tr><td>glibc, systemd, drivers</td><td>Sí, recomendado.</td></tr>
+        <tr><td>Módulo NVIDIA recompilado</td><td>Sí.</td></tr>
+        <tr><td>Actualización de versión de Fedora</td><td>Sí, lo gestiona <code>system-upgrade</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="t">Actualizaciones offline</span>
+    <p>
+      Discover y GNOME Software aplican actualizaciones en el reinicio mediante PackageKit. Es la
+      forma más segura de actualizar el sistema en un escritorio: nada se reemplaza mientras la
+      sesión está en uso. Si prefieres control total, hazlo desde la terminal.
+    </p>
+  </div>
+</div>
+<section id="c04" aria-labelledby="t04">
+  <h2 id="t04"><span class="num">04</span> Terminal esencial</h2>
+  <p class="lead">
+    Puedes usar Fedora sin abrir una terminal, pero como ingeniero de software vas a vivir en ella.
+    No hace falta memorizar cientos de comandos: basta con entender el shell, el PATH, los flujos y
+    las cuatro herramientas que resuelven el 90 % del trabajo diario.
+  </p>
+
+  <h3 id="c04-1">4.1 Shell, PATH y entorno</h3>
+  <p>
+    El <strong>shell</strong> es el programa que interpreta tus comandos. En Fedora, <code>bash</code>
+    es el valor por defecto; <code>zsh</code> y <code>fish</code> están disponibles si prefieres otra
+    experiencia interactiva. El shell no es la terminal: la terminal es la ventana; el shell es el
+    intérprete que corre dentro.
+  </p>
+
+  <p>
+    <code>PATH</code> es una lista de directorios separados por <code>:</code> donde el shell busca
+    ejecutables, en orden. Si un comando «no existe» pero el archivo está ahí, casi siempre es un
+    problema de PATH o del bit de ejecución.
+  </p>
+
+<pre><code><span class="c"># Dónde está y qué es cada comando</span>
+$ command -v code
+/usr/bin/code
+$ type -a python3
+python3 is /usr/bin/python3
+
+<span class="c"># Variables de entorno</span>
+$ echo $PATH
+$ printenv | sort | head
+$ export EDITOR="kate -b"
+$ export PATH="$HOME/.local/bin:$PATH"
+
+<span class="c"># Archivos de configuración del shell</span>
+$ ls -la ~/.bashrc ~/.bash_profile ~/.profile</code></pre>
+
+  <p>
+    Para tu usuario, edita <code>~/.bashrc</code> (shell interactivo) y
+    <code>~/.bash_profile</code> (login). Para todo el sistema, <code>/etc/profile.d/*.sh</code>.
+    Evita editar <code>/etc/profile</code> directamente: las actualizaciones pueden sobrescribirlo.
+  </p>
+
+<pre><code><span class="c"># ~/.bashrc — un punto de partida razonable</span>
+export PATH="$HOME/.local/bin:$PATH"
+export EDITOR="kate -b"
+export PAGER="less -FRX"
+
+alias ll='ls -alF'
+alias gs='git status'
+alias dc='docker compose'
+
+mkcd() { mkdir -p "$1" &amp;&amp; cd "$1"; }
+
+<span class="c"># Aplicar cambios sin cerrar la sesión</span>
+$ source ~/.bashrc</code></pre>
+
+  <div class="callout">
+    <span class="t">Login vs interactivo</span>
+    <p>
+      Una shell de login lee <code>~/.bash_profile</code>; una interactiva no login lee
+      <code>~/.bashrc</code>. Las terminales gráficas suelen abrir shells no login, mientras que una
+      TTY o <code>ssh</code> abre una de login. Si una variable «desaparece» según cómo entres, es
+      por esta diferencia.
+    </p>
+  </div>
+
+  <h3 id="c04-2">4.2 Archivos y navegación</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows (CMD / PowerShell)</th><th class="lin">Fedora (bash)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>dir</code></td><td><code>ls -la</code></td></tr>
+        <tr><td><code>cd</code></td><td><code>cd</code> / <code>pwd</code></td></tr>
+        <tr><td><code>copy</code></td><td><code>cp -r</code></td></tr>
+        <tr><td><code>move</code></td><td><code>mv</code></td></tr>
+        <tr><td><code>del</code></td><td><code>rm</code></td></tr>
+        <tr><td><code>mkdir</code></td><td><code>mkdir -p</code></td></tr>
+        <tr><td><code>type</code></td><td><code>cat</code> / <code>less</code></td></tr>
+        <tr><td><code>findstr</code></td><td><code>grep</code> / <code>rg</code></td></tr>
+        <tr><td><code>where</code></td><td><code>command -v</code></td></tr>
+        <tr><td><code>cls</code></td><td><code>clear</code></td></tr>
+        <tr><td><code>mklink</code></td><td><code>ln -s</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Navegación</span>
+$ pwd
+$ cd ~/Proyectos
+$ cd -
+$ ls -la
+$ ls -lh --sort=size
+
+<span class="c"># Crear, copiar, mover, borrar</span>
+$ mkdir -p proyecto/src proyecto/tests
+$ cp -r plantilla/ proyecto/
+$ mv viejo.txt nuevo.txt
+$ rm -rf build/          <span class="c"># cuidado: no hay papelera</span>
+$ ln -s /ruta/real enlace
+
+<span class="c"># Buscar</span>
+$ find . -type f -name "*.py" -not -path "*/node_modules/*"
+$ fd -e py
+$ rg "TODO" -g '!node_modules'
+
+<span class="c"># Metadatos y tamaño</span>
+$ stat archivo.txt
+$ du -sh ~/Proyectos/*
+$ tree -L 2</code></pre>
+
+  <p>
+    <code>rm</code> no mueve a la papelera: borra. <code>rm -rf</code> borra recursivamente y sin
+    preguntar. Antes de ejecutarlo, revisa la ruta con <code>ls</code> y evita comodines amplios.
+    Para archivos importantes, usa snapshots o una copia de seguridad.
+  </p>
+
+  <h4>Archivos comprimidos</h4>
+<pre><code>$ tar -czf backup.tar.gz proyecto/
+$ tar -xzf backup.tar.gz
+$ tar -tzf backup.tar.gz | head
+$ unzip archivo.zip -d destino/
+$ zstd -T0 archivo.tar</code></pre>
+
+  <h3 id="c04-3">4.3 Permisos en práctica</h3>
+  <p>
+    Ya viste los bits en el capítulo 1. En el día a día usarás la forma simbólica para cambios
+    puntuales y la octal para valores completos. <code>umask</code> define los permisos que se
+    restan por defecto a los archivos nuevos.
+  </p>
+
+<pre><code><span class="c"># Simbólico: u=usuario, g=grupo, o=otros, a=todos</span>
+$ chmod u+x script.sh
+$ chmod g-w archivo.txt
+$ chmod o-r secreto.txt
+$ chmod a+r documentacion.pdf
+
+<span class="c"># Octal: lectura=4, escritura=2, ejecución=1</span>
+$ chmod 755 script.sh
+$ chmod 600 ~/.ssh/id_ed25519
+
+<span class="c"># Propietario y grupo</span>
+$ sudo chown jose:devs proyecto/
+$ sudo chgrp devs proyecto/
+
+<span class="c"># umask: 022 → archivos 644, directorios 755</span>
+$ umask
+$ umask 027
+
+<span class="c"># Bits especiales</span>
+$ ls -ld /tmp
+drwxrwxrwt. ... /tmp        <span class="c"># t = sticky: solo el dueño borra</span>
+$ chmod g+s shared/          <span class="c"># setgid: nuevos archivos heredan el grupo</span></code></pre>
+
+  <div class="callout warn">
+    <span class="t">La redirección no hereda sudo</span>
+    <p>
+      <code>sudo echo "algo" &gt; /etc/archivo</code> falla porque la redirección la hace tu shell, no
+      <code>sudo</code>. Usa <code>echo "algo" | sudo tee /etc/archivo</code> o
+      <code>sudo sh -c 'echo "algo" &gt; /etc/archivo'</code>.
+    </p>
+  </div>
+
+  <h3 id="c04-4">4.4 Tuberías y redirección</h3>
+  <p>
+    La composición es la superpotencia de Unix. Cada comando hace una cosa y produce texto; el
+    siguiente lo transforma. Aprende <code>grep</code>, <code>sort</code>, <code>uniq</code>,
+    <code>cut</code>, <code>awk</code>, <code>sed</code> y <code>xargs</code> y podrás resolver
+    consultas que en una GUI requerirían exportar a Excel.
+  </p>
+
+<pre><code><span class="c"># Los 10 procesos que más memoria usan</span>
+$ ps -eo pid,comm,%mem --sort=-%mem | head -n 11
+
+<span class="c"># Contar archivos por extensión</span>
+$ find . -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn | head
+
+<span class="c"># Espacio por directorio de primer nivel</span>
+$ du -h --max-depth=1 ~ | sort -h
+
+<span class="c"># Buscar y reemplazar en varios archivos</span>
+$ rg -l "localhost:3000" src/ | xargs sed -i 's/localhost:3000/localhost:8080/g'
+
+<span class="c"># Guardar y ver a la vez</span>
+$ ./build.sh 2&gt;&amp;1 | tee build.log
+
+<span class="c"># Código de salida</span>
+$ ./test.sh &amp;&amp; echo "OK" || echo "FALLÓ: $?"</code></pre>
+
+  <div class="callout tip">
+    <span class="t">Comillas</span>
+    <p>
+      Usa comillas dobles para permitir expansión de variables y simples para texto literal.
+      <code>"$HOME"</code> se expande; <code>'$HOME'</code> no. Y cita siempre variables que puedan
+      contener espacios: <code>"$archivo"</code>, no <code>$archivo</code>.
+    </p>
+  </div>
+
+  <h3 id="c04-5">4.5 Procesos y logs</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Necesitas…</th><th>Comando</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Ver procesos y consumo</td><td><code>ps aux</code>, <code>top</code>, <code>htop</code></td></tr>
+        <tr><td>Buscar por nombre</td><td><code>pgrep -af patron</code></td></tr>
+        <tr><td>Terminar limpiamente</td><td><code>kill -TERM &lt;pid&gt;</code></td></tr>
+        <tr><td>Forzar</td><td><code>kill -KILL &lt;pid&gt;</code></td></tr>
+        <tr><td>Ver un servicio</td><td><code>systemctl status &lt;unidad&gt;</code></td></tr>
+        <tr><td>Ver logs en vivo</td><td><code>journalctl -f -u &lt;unidad&gt;</code></td></tr>
+        <tr><td>Logs del arranque actual</td><td><code>journalctl -b -p err</code></td></tr>
+        <tr><td>Mensajes del kernel</td><td><code>dmesg -w</code></td></tr>
+        <tr><td>Puertos abiertos</td><td><code>ss -tulpn</code></td></tr>
+        <tr><td>Quién usa un puerto</td><td><code>lsof -i :3000</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Seguir los logs de un servicio mientras depuras</span>
+$ journalctl -f -u sshd
+$ journalctl -u sshd --since "10 minutes ago"
+
+<span class="c"># Errores del arranque anterior</span>
+$ journalctl -b -1 -p err --no-pager
+
+<span class="c"># Espacio que ocupan los logs y limpieza</span>
+$ journalctl --disk-usage
+$ sudo journalctl --vacuum-time=7d
+
+<span class="c"># Prioridad y ajuste de CPU</span>
+$ nice -n 10 ./compilar.sh
+$ renice -n 5 -p 1234</code></pre>
+
+  <h3 id="c04-6">4.6 SSH y transferencia de archivos</h3>
+  <p>
+    SSH es la navaja suiza para trabajar con servidores. Fedora trae el cliente instalado; el
+    servidor (<code>sshd</code>) se instala aparte si lo necesitas. Las claves Ed25519 son el
+    estándar actual: más cortas y más seguras que RSA.
+  </p>
+
+<pre><code><span class="c"># Generar una clave y copiarla al servidor</span>
+$ ssh-keygen -t ed25519 -C "jose@portatil"
+$ ssh-copy-id usuario@servidor
+
+<span class="c"># Agente SSH</span>
+$ eval "$(ssh-agent -s)"
+$ ssh-add ~/.ssh/id_ed25519
+
+<span class="c"># Probar la conexión</span>
+$ ssh -T git@github.com
+
+<span class="c"># Copiar y sincronizar</span>
+$ scp archivo.tar.gz usuario@servidor:/tmp/
+$ rsync -avz --progress ./dist/ usuario@servidor:/var/www/app/
+
+<span class="c"># Túnel local: el puerto 5432 remoto queda en localhost:5432</span>
+$ ssh -L 5432:localhost:5432 usuario@servidor</code></pre>
+
+<pre><code><span class="c"># ~/.ssh/config — evita repetir parámetros</span>
+Host servidor
+    HostName 203.0.113.10
+    User jose
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>PuTTY</td><td><code>ssh</code></td></tr>
+        <tr><td>WinSCP</td><td><code>scp</code>, <code>rsync</code>, Dolphin (sftp://)</td></tr>
+        <tr><td>Pageant</td><td><code>ssh-agent</code> + <code>ssh-add</code></td></tr>
+        <tr><td>Túnel con GUI</td><td><code>ssh -L</code>, <code>ssh -R</code></td></tr>
+        <tr><td>OpenSSH de Windows</td><td>El mismo cliente, misma configuración</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="t">Permisos de ~/.ssh</span>
+    <p>
+      SSH rechaza claves con permisos demasiado abiertos. <code>~/.ssh</code> debe ser
+      <code>700</code> y las claves privadas <code>600</code>. Si ves «UNPROTECTED PRIVATE KEY
+      FILE», ejecuta <code>chmod 700 ~/.ssh &amp;&amp; chmod 600 ~/.ssh/id_*</code>.
+    </p>
+  </div>
+</section>
+<section id="c05" aria-labelledby="t05">
+  <h2 id="t05"><span class="num">05</span> KDE Plasma</h2>
+  <p class="lead">
+    Plasma es el escritorio más parecido a Windows en cuanto a disposición —panel, menú de
+    aplicaciones, bandeja del sistema—, pero su arquitectura es modular y casi todo es configurable.
+    Entender sus piezas evita tratar el escritorio como una caja negra.
+  </p>
+
+  <h3 id="c05-1">5.1 KDE, Plasma, Qt y el resto del naming</h3>
+  <p>
+    «KDE» se usa para todo, pero designa cosas distintas. <strong>KDE</strong> es la comunidad y la
+    organización (KDE e.V.). <strong>Plasma</strong> es el escritorio. <strong>KWin</strong> es el
+    compositor y gestor de ventanas. <strong>Qt</strong> es el toolkit con el que está construido.
+    <strong>KDE Frameworks</strong> son las bibliotecas compartidas y <strong>KDE Gear</strong> es el
+    conjunto de aplicaciones.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Nombre</th><th>Qué es</th><th>Versión actual</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>KDE</td><td>Comunidad y organización que coordina los proyectos.</td><td>—</td></tr>
+        <tr><td>Plasma</td><td>El escritorio: panel, widgets, sesión, ajustes.</td><td>6.x</td></tr>
+        <tr><td>KWin</td><td>Compositor, gestor de ventanas y servidor Wayland.</td><td>Incluido en Plasma</td></tr>
+        <tr><td>Qt</td><td>Toolkit de UI en C++ y QML.</td><td>Qt 6</td></tr>
+        <tr><td>KDE Frameworks</td><td>Bibliotecas (KConfig, KIO, Solid, KWallet…).</td><td>6.x</td></tr>
+        <tr><td>KDE Gear</td><td>Apps: Dolphin, Kate, Konsole, Okular…</td><td>Calendario (26.08, etc.)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="t">Precisión útil</span>
+    <p>
+      «KDE» no es un escritorio; el escritorio es Plasma. Decir «uso KDE» es coloquial y correcto,
+      pero si reportas un bug, el componente importa: <em>plasmashell</em>, <em>kwin</em>,
+      <em>dolphin</em>.
+    </p>
+  </div>
+
+  <h3 id="c05-2">5.2 Arquitectura de la sesión</h3>
+  <p>
+    Al arrancar, el firmware carga GRUB, el kernel monta el sistema y systemd llega a
+    <code>graphical.target</code>. Entonces arranca <strong>SDDM</strong>, el gestor de sesión donde
+    eliges usuario y tipo de sesión (Wayland o X11). Tras autenticarte, systemd inicia una sesión de
+    usuario y Plasma levanta sus procesos.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Proceso</th><th>Responsabilidad</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>sddm</code></td><td>Pantalla de login y lanzamiento de la sesión.</td></tr>
+        <tr><td><code>systemd --user</code></td><td>Servicios de tu sesión: portals, agentes, apps de fondo.</td></tr>
+        <tr><td><code>kwin_wayland</code></td><td>Compositor, gestor de ventanas y servidor gráfico en Wayland.</td></tr>
+        <tr><td><code>plasmashell</code></td><td>Panel, escritorio, widgets y lanzador.</td></tr>
+        <tr><td><code>kded6</code></td><td>Daemon de servicios de KDE (configuración, hardware, notificaciones).</td></tr>
+        <tr><td><code>xdg-desktop-portal-kde</code></td><td>Portals: captura de pantalla, compartir, selector de archivos.</td></tr>
+        <tr><td><code>polkit-kde-authentication-agent-1</code></td><td>Diálogos de autorización del sistema.</td></tr>
+        <tr><td><code>powerdevil</code></td><td>Perfiles de energía, suspensión, brillo.</td></tr>
+        <tr><td><code>NetworkManager</code></td><td>Red, Wi-Fi, VPN (el applet es solo la interfaz).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># ¿Wayland o X11?</span>
+$ echo $XDG_SESSION_TYPE
+wayland
+$ loginctl show-session $XDG_SESSION_ID -p Type
+
+<span class="c"># Procesos de la sesión</span>
+$ ps -u $USER -o pid,comm | grep -E 'plasmashell|kwin|kded'
+
+<span class="c"># Reiniciar solo el shell (panel y widgets)</span>
+$ systemctl --user restart plasma-plasmashell.service
+
+<span class="c"># Alternativa clásica</span>
+$ plasmashell --replace &amp;
+
+<span class="c"># Aplicar cambios de KWin sin reiniciar la sesión</span>
+$ qdbus6 org.kde.KWin /KWin reconfigure</code></pre>
+
+  <div class="callout warn">
+    <span class="t">Wayland no es X11</span>
+    <p>
+      En Wayland, KWin es el servidor gráfico: no hay un proceso Xorg al que conectarse. Las apps
+      antiguas siguen funcionando mediante <strong>XWayland</strong>, pero pierden algunas
+      capacidades, como el control global del teclado o la captura sin portal.
+    </p>
+  </div>
+
+  <h3 id="c05-3">5.3 El escritorio en uso</h3>
+  <p>
+    La disposición por defecto te resultará familiar: panel inferior con lanzador, lista de tareas,
+    bandeja del sistema y reloj. La diferencia está en que cada pieza es un <strong>widget</strong>
+    que puedes mover, duplicar o reemplazar, y en que existen dos conceptos de organización:
+    escritorios virtuales y <em>Activities</em>.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Plasma</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Menú Inicio</td><td>Kickoff (lanzador de aplicaciones)</td></tr>
+        <tr><td>Barra de tareas</td><td>Panel + Lista de tareas</td></tr>
+        <tr><td>Área de notificaciones</td><td>Bandeja del sistema + Notificaciones</td></tr>
+        <tr><td>Vista de tareas</td><td>Overview (<kbd>Meta</kbd>+<kbd>W</kbd>)</td></tr>
+        <tr><td><kbd>Win</kbd>+<kbd>R</kbd></td><td>KRunner (<kbd>Alt</kbd>+<kbd>Espacio</kbd>)</td></tr>
+        <tr><td>Escritorios virtuales</td><td>Escritorios virtuales en cuadrícula</td></tr>
+        <tr><td>Escritorio remoto / escritorios</td><td>Activities (contextos completos)</td></tr>
+        <tr><td>Portapapeles (Win+V)</td><td>Klipper</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>KRunner</h4>
+  <p>
+    Es la interfaz más rentable de aprender. <kbd>Alt</kbd>+<kbd>Espacio</kbd> abre un campo que
+    busca aplicaciones, archivos (si Baloo está activo), ventanas abiertas, marcadores, sesiones SSH
+    y unidades. Además calcula y convierte:
+  </p>
+
+<pre data-nocopy><code>= 2 + 2 * 10          → calculadora
+= 15 USD in EUR       → conversión de divisas
+spell definición      → ortografía
+?                     → ayuda de plugins</code></pre>
+
+  <h4>Activities y escritorios virtuales</h4>
+  <p>
+    Un escritorio virtual cambia las ventanas visibles. Un <em>Activity</em> cambia el contexto
+    completo: widgets, fondo, aplicaciones asociadas y hasta el estado de los escritorios. Puedes
+    tener «Trabajo», «Estudio» y «Personal» con paneles distintos. Para la mayoría, los escritorios
+    virtuales bastan; las Activities son útiles si separas proyectos de forma radical.
+  </p>
+
+  <div class="callout tip">
+    <span class="t">Bordes de pantalla</span>
+    <p>
+      System Settings → Workspace Behavior → Screen Edges permite acciones al llevar el cursor a un
+      borde: mostrar todas las ventanas, cambiar de escritorio, bloquear. Es una alternativa a los
+      atajos y muy cómoda con un solo monitor.
+    </p>
+  </div>
+
+  <h3 id="c05-4">5.4 System Settings frente al Panel de control</h3>
+  <p>
+    <strong>System Settings</strong> es el centro de configuración. No hay registro: cada cambio se
+    escribe en un archivo de texto dentro de <code>~/.config</code>. La búsqueda superior encuentra
+    módulos por nombre, lo que ahorra recorrer el árbol.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Módulo</th><th>Qué controla</th><th class="win">Equivalente Windows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Appearance</td><td>Temas globales, colores, iconos, fuentes, cursores.</td><td>Personalización</td></tr>
+        <tr><td>Workspace Behavior</td><td>Escritorios, Activities, bordes, efectos.</td><td>Varios</td></tr>
+        <tr><td>Input Devices</td><td>Teclado, ratón, touchpad, gamepad.</td><td>Dispositivos</td></tr>
+        <tr><td>Display &amp; Monitor</td><td>Resolución, escala, HDR, VRR, noche.</td><td>Pantalla</td></tr>
+        <tr><td>Audio</td><td>Dispositivos, perfiles, volumen por app.</td><td>Sonido</td></tr>
+        <tr><td>Network / Bluetooth</td><td>Wi-Fi, Ethernet, VPN, emparejamiento.</td><td>Red e Internet</td></tr>
+        <tr><td>Users</td><td>Cuentas, contraseñas, avatares.</td><td>Cuentas de usuario</td></tr>
+        <tr><td>Shortcuts</td><td>Atajos globales y de KWin.</td><td>—</td></tr>
+        <tr><td>Startup and Shutdown</td><td>SDDM, autostart, sesión.</td><td>Inicio</td></tr>
+        <tr><td>Power Management</td><td>Suspensión, brillo, perfiles.</td><td>Opciones de energía</td></tr>
+        <tr><td>Security</td><td>KWallet, bloqueo, permisos.</td><td>Seguridad</td></tr>
+        <tr><td>Printers</td><td>CUPS y colas de impresión.</td><td>Dispositivos e impresoras</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Abrir un módulo concreto desde la terminal</span>
+$ kcmshell6 --list
+$ kcmshell6 kcm_style
+$ kcmshell6 kcm_keys
+
+<span class="c"># Leer y escribir configuración sin abrir la GUI</span>
+$ kreadconfig6 --file kdeglobals --group General --key ColorScheme
+$ kwriteconfig6 --file kdeglobals --group General --key ColorScheme "Catppuccin Mocha Blue"</code></pre>
+
+  <div class="callout">
+    <span class="t">Configuración por usuario</span>
+    <p>
+      System Settings escribe en tu home, no en <code>/etc</code>. Otro usuario del equipo puede
+      tener otro tema, otro panel y otros atajos. La configuración del sistema (usuarios, red,
+      impresoras) sí es global y pasa por polkit.
+    </p>
+  </div>
+</section>
+<div id="c05b">
+  <h3 id="c05-5">5.5 Aplicaciones de KDE</h3>
+  <p>
+    KDE Gear es una suite amplia y coherente. No necesitas instalar todo: Fedora KDE trae lo
+    esencial y el resto se añade con DNF o Flatpak. Estas son las que un desarrollador acaba usando
+    a diario.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Aplicación</th><th>Para qué</th><th class="win">Equivalente Windows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dolphin</td><td>Gestor de archivos con pestañas, vista dividida y panel de terminal.</td><td>Explorador de archivos</td></tr>
+        <tr><td>Konsole</td><td>Terminal con perfiles, pestañas y vistas divididas.</td><td>Windows Terminal</td></tr>
+        <tr><td>Kate</td><td>Editor con LSP, sesiones, Git y terminal integrada.</td><td>Notepad++ / VS Code (parcial)</td></tr>
+        <tr><td>Spectacle</td><td>Capturas de pantalla, región, ventana, anotaciones.</td><td>Recortes</td></tr>
+        <tr><td>Ark</td><td>Comprimir y extraer archivos.</td><td>WinRAR / 7-Zip</td></tr>
+        <tr><td>Gwenview</td><td>Visor y organizador de imágenes.</td><td>Fotos</td></tr>
+        <tr><td>Okular</td><td>PDF con anotaciones y formularios.</td><td>Edge / Acrobat Reader</td></tr>
+        <tr><td>Haruna</td><td>Reproductor de vídeo basado en mpv.</td><td>VLC</td></tr>
+        <tr><td>Elisa</td><td>Reproductor de música sencillo.</td><td>Groove / Spotify (local)</td></tr>
+        <tr><td>Discover</td><td>Centro de software: DNF, Flatpak y firmware.</td><td>Microsoft Store</td></tr>
+        <tr><td>KDE Connect</td><td>Integración con el móvil: notificaciones, portapapeles, archivos.</td><td>Phone Link</td></tr>
+        <tr><td>System Monitor</td><td>Procesos, CPU, memoria, red, discos.</td><td>Administrador de tareas</td></tr>
+        <tr><td>KWallet</td><td>Almacén de secretos cifrado.</td><td>Administrador de credenciales</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Dolphin</h4>
+  <p>
+    <kbd>F3</kbd> abre la vista dividida, <kbd>F4</kbd> el panel de terminal en el directorio actual,
+    <kbd>Ctrl</kbd>+<kbd>L</kbd> enfoca la barra de ruta y <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>
+    busca con Baloo. El menú contextual incluye «Abrir con» y servicios de KIO, que permiten trabajar
+    con <code>sftp://</code>, <code>smb://</code> o <code>fish://</code> como si fueran carpetas
+    locales.
+  </p>
+
+  <h4>Kate y Konsole</h4>
+  <p>
+    Kate no es solo un bloc de notas: soporta LSP, sesiones, proyectos, terminal integrada y
+    resaltado por lenguaje. Konsole guarda perfiles (por ejemplo, uno que abre SSH a un servidor) y
+    permite dividir la vista. Ambos comparten la configuración de atajos de KDE, así que puedes
+    personalizarlos como cualquier otra app.
+  </p>
+
+  <div class="callout tip">
+    <span class="t">Descubrimiento</span>
+    <p>
+      Discover mezcla paquetes DNF y Flatpak. Si buscas una app y aparece dos veces, revisa el
+      origen: la versión Flatpak está en sandbox y la de DNF comparte bibliotecas del sistema.
+      Para apps de escritorio, Flatpak suele ser la opción más limpia.
+    </p>
+  </div>
+
+  <h3 id="c05-6">5.6 Personalización y temas</h3>
+  <p>
+    Plasma separa la personalización en capas. Un <strong>tema global</strong> (<em>Global Theme</em>
+    o <em>look-and-feel</em>) agrupa las demás: estilo de Plasma, colores, iconos, cursores,
+    decoración de ventanas, pantalla de inicio y fondo. Puedes aplicar uno completo o cambiar cada
+    pieza por separado.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Capa</th><th>Qué cambia</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Global Theme</td><td>Paquete completo con valores por defecto.</td></tr>
+        <tr><td>Plasma Style</td><td>Aspecto de paneles, widgets y menús.</td></tr>
+        <tr><td>Application Style</td><td>Estilo de las apps Qt (Breeze, Fusion, Kvantum).</td></tr>
+        <tr><td>Colors</td><td>Esquema de colores, incluido el de apps GTK.</td></tr>
+        <tr><td>Icons / Cursors</td><td>Iconografía y punteros.</td></tr>
+        <tr><td>Fonts</td><td>Fuentes de escritorio, ventanas, documentos y terminal.</td></tr>
+        <tr><td>Window Decorations</td><td>Bordes, botones y sombras.</td></tr>
+        <tr><td>Splash Screen</td><td>Pantalla de carga de la sesión.</td></tr>
+        <tr><td>SDDM Theme</td><td>Pantalla de login.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    System Settings → Appearance → <em>Get New…</em> descarga desde store.kde.org. También puedes
+    instalar temas a mano en <code>~/.local/share/plasma/look-and-feel/</code> o
+    <code>~/.local/share/color-schemes/</code>. Esta misma página usa la paleta
+    <strong>Catppuccin Mocha</strong>; existe un port oficial para KDE en el repositorio
+    <code>catppuccin/kde</code>, con variantes Mocha, Macchiato, Frappé y Latte.
+  </p>
+
+<pre><code><span class="c"># Instalar Catppuccin para KDE desde el repositorio oficial</span>
+$ git clone --depth=1 https://github.com/catppuccin/kde.git
+$ cd kde
+$ ./install.sh                 <span class="c"># interactivo: elige Mocha</span>
+$ ./install.sh 1 13 2 auto     <span class="c"># Mocha, azul, decoración clásica</span>
+
+<span class="c"># Aplicar el esquema de colores (nombre exacto en System Settings → Colors)</span>
+$ kwriteconfig6 --file kdeglobals --group General --key ColorScheme "Catppuccin Mocha Blue"
+
+<span class="c"># Refrescar la configuración de KWin</span>
+$ qdbus6 org.kde.KWin /KWin reconfigure</code></pre>
+
+  <div class="callout warn">
+    <span class="t">Temas y confianza</span>
+    <p>
+      Un tema global puede incluir archivos de configuración y scripts de instalación. Instala solo
+      desde fuentes conocidas y revisa qué contiene antes de ejecutar un instalador. Un tema no
+      debería necesitar permisos de root.
+    </p>
+  </div>
+
+  <p>
+    Para apps GTK (GIMP, Firefox, Inkscape), Plasma sincroniza colores y fuentes mediante
+    <code>kde-gtk-config</code>. Si una app GTK se ve fuera de lugar, revisa System Settings →
+    Appearance → Colors → <em>Apply colors to non-Qt applications</em>. Para Qt, Kvantum ofrece
+    temas más elaborados que Breeze.
+  </p>
+
+  <h3 id="c05-7">5.7 La configuración también son archivos</h3>
+  <p>
+    Todo lo que cambias en System Settings termina en archivos INI dentro de <code>~/.config</code>.
+    Puedes leerlos, versionarlos con dotfiles o editarlos con <code>kwriteconfig6</code>. Si algo se
+    rompe, renombrar el archivo y volver a iniciar sesión restaura los valores por defecto.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Archivo</th><th>Contenido</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>~/.config/kdeglobals</code></td><td>Colores, fuentes, estilo, iconos.</td></tr>
+        <tr><td><code>~/.config/kwinrc</code></td><td>Compositor, efectos, reglas de ventanas.</td></tr>
+        <tr><td><code>~/.config/plasmarc</code></td><td>Tema de Plasma y configuración del shell.</td></tr>
+        <tr><td><code>~/.config/plasmashellrc</code></td><td>Paneles, widgets y escritorios.</td></tr>
+        <tr><td><code>~/.config/kglobalshortcutsrc</code></td><td>Atajos globales.</td></tr>
+        <tr><td><code>~/.config/krunnerrc</code></td><td>Plugins de KRunner.</td></tr>
+        <tr><td><code>~/.config/dolphinrc</code></td><td>Vistas, favoritos, ajustes de Dolphin.</td></tr>
+        <tr><td><code>~/.config/konsole/*.profile</code></td><td>Perfiles de terminal.</td></tr>
+        <tr><td><code>~/.config/autostart/*.desktop</code></td><td>Apps que arrancan con la sesión.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Archivos .desktop</h4>
+  <p>
+    Los lanzadores de aplicaciones son archivos de texto. Los del sistema están en
+    <code>/usr/share/applications</code>; los tuyos van en <code>~/.local/share/applications</code>.
+    Así puedes crear un lanzador para un script o una app que no se registró sola.
+  </p>
+
+<pre><code><span class="c"># ~/.local/share/applications/servidor-local.desktop</span>
+[Desktop Entry]
+Type=Application
+Name=Servidor local
+Comment=API de desarrollo en el puerto 8080
+Exec=/home/jose/bin/servidor
+Icon=utilities-terminal
+Terminal=true
+Categories=Development;
+Keywords=api;dev;servidor;</code></pre>
+
+<pre><code><span class="c"># Refrescar la base de datos de aplicaciones</span>
+$ update-desktop-database ~/.local/share/applications
+$ kbuildsycoca6
+
+<span class="c"># Asociaciones de archivos y apertura por defecto</span>
+$ xdg-mime query default application/pdf
+$ xdg-mime default org.kde.okular.desktop application/pdf
+$ xdg-open documento.pdf</code></pre>
+
+  <div class="callout">
+    <span class="t">Edita con la aplicación cerrada</span>
+    <p>
+      Si modificas <code>kwinrc</code> o <code>plasmashellrc</code> mientras la sesión está activa,
+      Plasma puede sobrescribir tus cambios al salir. Cierra la app, edita y luego aplica; o usa
+      <code>kwriteconfig6</code>, que notifica el cambio.
+    </p>
+  </div>
+
+  <h3 id="c05-8">5.8 Atajos de teclado</h3>
+  <p>
+    Los atajos se gestionan en System Settings → Shortcuts. Hay tres ámbitos: globales (Plasma),
+    de KWin (gestión de ventanas) y de cada aplicación. Si un atajo no funciona, casi siempre hay un
+    conflicto entre dos componentes.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Atajo</th><th>Acción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><kbd>Meta</kbd></td><td>Abrir el lanzador de aplicaciones.</td></tr>
+        <tr><td><kbd>Alt</kbd>+<kbd>Espacio</kbd></td><td>Abrir KRunner.</td></tr>
+        <tr><td><kbd>Alt</kbd>+<kbd>Tab</kbd></td><td>Cambiar de ventana.</td></tr>
+        <tr><td><kbd>Meta</kbd>+<kbd>W</kbd></td><td>Overview: ventanas y escritorios.</td></tr>
+        <tr><td><kbd>Meta</kbd>+flechas</td><td>Mover o maximizar la ventana.</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></td><td>Bloquear la sesión.</td></tr>
+        <tr><td><kbd>Impr Pant</kbd></td><td>Spectacle: captura de pantalla.</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Esc</kbd></td><td>Matar una ventana que no responde.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="small muted">
+    Los valores exactos dependen de la versión y de la configuración de tu equipo. Verifícalos en
+    System Settings → Shortcuts antes de darlos por sentado.
+  </p>
+
+<pre><code><span class="c"># Los atajos se guardan aquí</span>
+$ less ~/.config/kglobalshortcutsrc
+
+<span class="c"># Tras editar a mano, recarga la configuración</span>
+$ qdbus6 org.kde.KWin /KWin reconfigure</code></pre>
+
+  <div class="callout tip">
+    <span class="t">Atajo para una orden</span>
+    <p>
+      En System Settings → Shortcuts puedes añadir un atajo personalizado que ejecute un comando.
+      Es útil para levantar un contenedor, abrir un proyecto concreto o lanzar una consulta
+      frecuente sin pasar por la terminal.
+    </p>
+  </div>
+
+  <h3 id="c05-9">5.9 Wayland en la práctica</h3>
+  <p>
+    Plasma 6 usa Wayland por defecto y, a estas alturas, es la opción recomendada para la mayoría.
+    Trae escalado fraccional, HDR, VRR, mejor manejo de múltiples monitores y aislamiento entre
+    aplicaciones. X11 sigue disponible en la pantalla de login por si una app concreta lo necesita.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Área</th><th>Estado en Plasma 6</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Escalado fraccional</td><td>Soportado (125 %, 150 %, etc.). Apps XWayland pueden verse borrosas.</td></tr>
+        <tr><td>HDR</td><td>Soportado en monitores compatibles; se activa por pantalla.</td></tr>
+        <tr><td>VRR / Adaptive Sync</td><td>Configurable por pantalla.</td></tr>
+        <tr><td>Compartir pantalla</td><td>Vía portal + PipeWire; OBS y navegadores lo usan.</td></tr>
+        <tr><td>Atajos globales</td><td>Portal para apps sandbox; algunas apps antiguas no los capturan.</td></tr>
+        <tr><td>Apps X11</td><td>Funcionan con XWayland.</td></tr>
+        <tr><td>NVIDIA</td><td>Funciona con drivers recientes; el soporte depende de la versión.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Diagnóstico de pantallas y escala</span>
+$ kscreen-doctor -o
+$ kscreen-doctor output.DP-1.scale.1.5
+$ kscreen-doctor output.DP-1.hdr.enable
+
+<span class="c"># Forzar X11 en una app concreta</span>
+$ QT_QPA_PLATFORM=xcb ./app-qt
+$ GDK_BACKEND=x11 ./app-gtk
+
+<span class="c"># Electron / Chromium (VS Code, Slack, Discord)</span>
+$ code --ozone-platform-hint=auto
+$ slack --ozone-platform-hint=auto
+
+<span class="c"># Logs de la sesión gráfica</span>
+$ journalctl --user -b --no-pager | tail -n 100
+$ coredumpctl list</code></pre>
+
+  <div class="callout warn">
+    <span class="t">Si algo no funciona en Wayland</span>
+    <p>
+      Antes de abandonar Wayland, identifica la app. Las apps Electron suelen necesitar
+      <code>--ozone-platform-hint=auto</code>; las Java antiguas, XWayland; las de captura, permisos
+      de portal. Cambiar toda la sesión a X11 es la última opción, no la primera.
+    </p>
+  </div>
+
+  <p>
+    Para cambiar de sesión, cierra sesión y en SDDM elige el engranaje o menú de sesión: verás
+    «Plasma (Wayland)» y «Plasma (X11)». La elección se recuerda para el próximo inicio.
+  </p>
+</div>
+<section id="c06" aria-labelledby="t06">
+  <h2 id="t06"><span class="num">06</span> Instalación y primer arranque</h2>
+  <p class="lead">
+    La instalación de Fedora es rápida; las decisiones que importan se toman antes: cómo convivir
+    con Windows, cómo particionar y qué hacer con Secure Boot. Este capítulo asume que ya tienes el
+    equipo y quieres un escritorio utilizable, no una instalación de laboratorio.
+  </p>
+
+  <h3 id="c06-1">6.1 ISO, verificación y Secure Boot</h3>
+  <p>
+    Descarga la imagen de <strong>Fedora KDE Plasma Desktop</strong> desde el sitio oficial. Verifica
+    siempre la suma SHA-256 y la firma GPG: una ISO corrupta produce fallos difíciles de diagnosticar
+    y una ISO manipulada es un riesgo de seguridad.
+  </p>
+
+<pre><code><span class="c"># Verificar integridad</span>
+$ sha256sum Fedora-KDE-Desktop-*.iso
+$ curl -LO https://fedoraproject.org/fedora.gpg
+$ gpg --verify Fedora-KDE-Desktop-*-CHECKSUM
+$ sha256sum -c Fedora-KDE-Desktop-*-CHECKSUM
+
+<span class="c"># Escribir a un USB (¡verifica el dispositivo con lsblk!)</span>
+$ lsblk
+$ sudo dd if=Fedora-KDE-Desktop-*.iso of=/dev/sdX bs=4M status=progress oflag=sync conv=fsync</code></pre>
+
+  <div class="callout danger">
+    <span class="t">dd no perdona</span>
+    <p>
+      <code>of=/dev/sdX</code> debe ser el dispositivo completo, no una partición
+      (<code>/dev/sdX1</code>). Si te equivocas, borras el disco. Fedora Media Writer hace lo mismo
+      con una interfaz y es la opción recomendada si no tienes prisa.
+    </p>
+  </div>
+
+  <p>
+    Fedora firma su <em>shim</em>, GRUB y el kernel, así que arranca con Secure Boot activo sin
+    intervención. El problema aparece con módulos de terceros, como el driver NVIDIA propietario:
+    el módulo no está firmado por Microsoft y el firmware lo rechaza. La solución es
+    <strong>MOK</strong> (<em>Machine Owner Key</em>): importas la clave pública de akmods y la
+    enrollas una vez en el arranque.
+  </p>
+
+<pre><code><span class="c"># Tras instalar akmod-nvidia, importar la clave y reiniciar</span>
+$ sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+$ sudo reboot
+
+<span class="c"># En el menú MOK: Enroll MOK → Continue → Yes → contraseña → reboot</span>
+$ mokutil --list-enrolled | grep -i akmod</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Ajuste de firmware</th><th>Recomendación</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Secure Boot</td><td>Activo. Fedora lo soporta; solo requiere MOK para módulos de terceros.</td></tr>
+        <tr><td>UEFI vs Legacy/CSM</td><td>UEFI. Fedora moderna asume UEFI.</td></tr>
+        <tr><td>TPM 2.0</td><td>Activo si quieres desbloqueo automático de LUKS.</td></tr>
+        <tr><td>IOMMU / VT-d / AMD-Vi</td><td>Activo si vas a usar máquinas virtuales con passthrough.</td></tr>
+        <tr><td>Fast Boot (firmware)</td><td>Puede omitir el USB; desactívalo durante la instalación.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c06-2">6.2 Dual boot, máquina virtual o disco dedicado</h3>
+  <p>
+    Antes de tocar particiones, decide el escenario. El dual boot es cómodo pero comparte el disco y
+    el gestor de arranque; una máquina virtual es reversible pero más lenta en gráficos; un disco
+    dedicado es la opción más limpia si puedes permitírtelo.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Escenario</th><th>Ventajas</th><th>Riesgos / límites</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dual boot</td><td>Rendimiento nativo; conservas Windows.</td><td>Riesgo al particionar; Windows puede sobrescribir el orden de arranque; reloj desincronizado.</td></tr>
+        <tr><td>Máquina virtual</td><td>Reversible; sin riesgo para Windows; ideal para probar.</td><td>Gráficos y USB más lentos; menos RAM disponible.</td></tr>
+        <tr><td>Disco dedicado</td><td>Aislamiento total; cada sistema con su disco.</td><td>Costo; elegir disco en el arranque.</td></tr>
+        <tr><td>WSL2 + Fedora remoto</td><td>Sin reinstalar; buena integración con Windows.</td><td>No es un escritorio Linux real; límites de systemd y GUI.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Dual boot sin sustos</h4>
+  <ol>
+    <li>Haz copia de seguridad y crea un punto de restauración de Windows.</li>
+    <li>Desactiva <em>Inicio rápido</em> en Windows y suspende BitLocker si está activo.</li>
+    <li>Reduce la partición NTFS desde Administración de discos y deja espacio <strong>sin asignar</strong>.</li>
+    <li>Arranca el USB en UEFI, instala Fedora en el espacio libre y deja que use la ESP existente.</li>
+    <li>Comprueba que GRUB detecta Windows. Si no, regenera la configuración.</li>
+  </ol>
+
+<pre><code><span class="c"># Si Windows no aparece en GRUB</span>
+$ sudo dnf install os-prober
+$ echo 'GRUB_DISABLE_OS_PROBER=false' | sudo tee -a /etc/default/grub
+$ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+<span class="c"># Reloj: Windows usa hora local; Linux prefiere UTC</span>
+$ timedatectl
+$ sudo timedatectl set-local-rtc 0
+
+<span class="c"># En Windows, para que use UTC (PowerShell como administrador)</span>
+<span class="c"># reg add "HKLM\SYSTEM\CurrentControlSet\Control\TimeZoneInformation" /v RealTimeIsUniversal /t REG_DWORD /d 1</span></code></pre>
+
+  <div class="callout warn">
+    <span class="t">BitLocker</span>
+    <p>
+      Si Windows tiene BitLocker, suspéndelo antes de modificar particiones. Un cambio en la tabla de
+      particiones puede forzar la recuperación y, sin la clave, perderás el acceso. Guarda la clave
+      de recuperación fuera del equipo.
+    </p>
+  </div>
+
+  <h3 id="c06-3">6.3 Particionado, Btrfs y cifrado</h3>
+  <p>
+    En UEFI, Fedora necesita una partición EFI (FAT32) y una raíz. El instalador propone un esquema
+    con Btrfs, subvolúmenes <code>root</code> y <code>home</code>, <code>/boot</code> en ext4 y
+    <code>zram</code> como swap comprimida en RAM. Es un buen punto de partida.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Partición</th><th>Tamaño orientativo</th><th>Sistema de archivos</th><th>Punto de montaje</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ESP</td><td>512 MB – 1 GB</td><td>FAT32</td><td><code>/boot/efi</code></td></tr>
+        <tr><td>Boot</td><td>1 GB</td><td>ext4</td><td><code>/boot</code></td></tr>
+        <tr><td>Raíz</td><td>40 – 80 GB</td><td>Btrfs</td><td><code>/</code></td></tr>
+        <tr><td>Home</td><td>Resto (opcional)</td><td>Btrfs o ext4</td><td><code>/home</code></td></tr>
+        <tr><td>Swap</td><td>zram por defecto; swapfile si hibernas</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Btrfs aporta snapshots, compresión transparente y subvolúmenes. Fedora no activa snapshots
+    automáticos por defecto; si quieres ese flujo, instala <code>snapper</code> o
+    <code>btrfs-assistant</code> y configura una política. La compresión <code>zstd</code> se puede
+    añadir en <code>/etc/fstab</code> con <code>compress=zstd:1</code>.
+  </p>
+
+<pre><code><span class="c"># Inspeccionar el esquema</span>
+$ lsblk -f
+$ findmnt --real
+$ sudo btrfs subvolume list /
+$ sudo btrfs filesystem usage /
+
+<span class="c"># Cifrado LUKS2 y desbloqueo con TPM2</span>
+$ sudo cryptsetup luksDump /dev/nvme0n1p3
+$ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/nvme0n1p3
+
+<span class="c"># Snapshot manual de la raíz (si existe el subvolumen)</span>
+$ sudo btrfs subvolume snapshot -r / /.snapshots/root-$(date +%F)</code></pre>
+
+  <div class="callout">
+    <span class="t">Cifrado: decide antes</span>
+    <p>
+      Cifrar la raíz y el home con LUKS2 protege los datos si pierdes el equipo, pero complica la
+      recuperación y el desbloqueo remoto. Con TPM2 puedes desbloquear automáticamente al arrancar;
+      sin TPM, necesitarás la contraseña en cada inicio.
+    </p>
+  </div>
+
+  <h3 id="c06-4">6.4 Drivers, códecs y firmware</h3>
+  <p>
+    AMD e Intel funcionan con los drivers libres del kernel y Mesa: no hay nada que instalar. NVIDIA
+    es el caso especial. Fedora incluye Nouveau, pero para rendimiento y CUDA necesitas el driver
+    propietario de RPM Fusion, que se compila con akmods contra cada kernel.
+  </p>
+
+<pre><code><span class="c"># NVIDIA propietario + CUDA</span>
+$ sudo dnf install akmod-nvidia xorg-x11-drv-nvidia-cuda
+$ sudo akmods --force
+$ sudo dracut --force
+$ modinfo -F version nvidia
+$ nvidia-smi
+
+<span class="c"># Códecs y multimedia</span>
+$ sudo dnf group install multimedia
+$ sudo dnf install libavcodec-freeworld gstreamer1-plugins-bad-freeworld
+
+<span class="c"># Firmware y periféricos</span>
+$ fwupdmgr get-devices
+$ fwupdmgr refresh --force
+$ fwupdmgr update
+$ system-config-printer
+$ lpstat -t
+
+<span class="c"># Audio: PipeWire</span>
+$ wpctl status
+$ pavucontrol</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Hardware</th><th>Qué hacer</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>AMD / Intel (gráficos)</td><td>Nada: Mesa y kernel incluidos.</td></tr>
+        <tr><td>NVIDIA</td><td>RPM Fusion + <code>akmod-nvidia</code> + MOK si Secure Boot.</td></tr>
+        <tr><td>Wi-Fi</td><td>El kernel incluye la mayoría; firmware vía <code>linux-firmware</code>.</td></tr>
+        <tr><td>Impresoras</td><td>CUPS + driverless IPP; <code>system-config-printer</code>.</td></tr>
+        <tr><td>Audio</td><td>PipeWire + WirePlumber; <code>pavucontrol</code> para rutas.</td></tr>
+        <tr><td>Firmware UEFI</td><td><code>fwupdmgr</code> sobre LVFS.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c06-5">6.5 Lista de verificación posterior</h3>
+  <p>
+    Tras el primer arranque, dedica veinte minutos a dejar el sistema en un estado reproducible.
+    Esta secuencia cubre lo que suele faltar en una instalación recién hecha.
+  </p>
+
+<pre><code><span class="c"># 1. Actualizar y activar repos</span>
+$ sudo dnf upgrade --refresh
+$ sudo dnf install \
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+<span class="c"># 2. Herramientas base</span>
+$ sudo dnf install git gh ripgrep fd-find bat htop tree jq \
+    @development-tools
+$ sudo dnf group install multimedia
+
+<span class="c"># 3. Flatpak y Flathub</span>
+$ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+<span class="c"># 4. Identidad del equipo</span>
+$ sudo hostnamectl set-hostname portatil-dev
+$ sudo timedatectl set-timezone Area/Ciudad
+$ timedatectl list-timezones | grep -i ciudad
+
+<span class="c"># 5. Servicios y seguridad</span>
+$ sudo systemctl enable --now sshd
+$ sudo firewall-cmd --add-service=ssh --permanent
+$ sudo firewall-cmd --reload
+$ getenforce
+$ systemctl --failed
+
+<span class="c"># 6. Fuentes para programar</span>
+$ sudo dnf install jetbrains-mono-fonts fira-code-fonts</code></pre>
+
+  <ul class="check">
+    <li>Actualizaciones aplicadas y sistema reiniciado.</li>
+    <li>RPM Fusion activo y códecs instalados.</li>
+    <li>Flatpak con Flathub configurado.</li>
+    <li>Driver de vídeo correcto (<code>nvidia-smi</code> o <code>glxinfo</code>).</li>
+    <li>Zona horaria, teclado y idioma correctos.</li>
+    <li>Claves SSH creadas y GitHub/GitLab probados.</li>
+    <li>Git configurado con nombre, correo y editor.</li>
+    <li>Copia de seguridad o snapshots configurados.</li>
+    <li>Firewall y SELinux en estado esperado.</li>
+  </ul>
+
+  <div class="callout tip">
+    <span class="t">Documenta tu instalación</span>
+    <p>
+      Guarda esta lista de comandos en un repositorio de dotfiles. La próxima vez que instales
+      Fedora —o cuando quieras reconstruir una máquina— tendrás un punto de partida reproducible en
+      lugar de recordar pasos sueltos.
+    </p>
+  </div>
+</section>
+<section id="c07" aria-labelledby="t07">
+  <h2 id="t07"><span class="num">07</span> Flujo de trabajo de un ingeniero</h2>
+  <p class="lead">
+    Fedora no impone un stack. La decisión importante es dónde instalar cada cosa: sistema,
+    usuario, proyecto o contenedor. Este capítulo propone una organización que evita conflictos y
+    facilita reconstruir el entorno.
+  </p>
+
+  <h3 id="c07-1">7.1 Toolchains y gestores de versiones</h3>
+  <p>
+    El sistema trae compiladores y utilidades, pero las versiones de los lenguajes suelen quedarse
+    atrás respecto a los gestores oficiales. La regla: usa DNF para lo que necesitas a nivel de
+    sistema y un gestor de versiones para lo que debe variar por proyecto.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Lenguaje</th><th>Recomendación</th><th>Por qué</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>C / C++</td><td><code>@development-tools</code> + paquetes <code>-devel</code></td><td>Bibliotecas del sistema y ABI estables.</td></tr>
+        <tr><td>Python</td><td><code>venv</code>, <code>pipx</code>, <code>uv</code></td><td>PEP 668 bloquea <code>pip</code> global.</td></tr>
+        <tr><td>Node.js</td><td><code>fnm</code>, <code>nvm</code> o <code>volta</code></td><td>Una versión por proyecto; DNF va más lento.</td></tr>
+        <tr><td>Rust</td><td><code>rustup</code></td><td>Toolchains y componentes por proyecto.</td></tr>
+        <tr><td>Go</td><td><code>dnf install golang</code></td><td>El toolchain de Fedora es suficiente.</td></tr>
+        <tr><td>Java</td><td><code>dnf install java-*-openjdk-devel</code></td><td>Múltiples versiones con <code>alternatives</code>.</td></tr>
+        <tr><td>.NET</td><td><code>dnf install dotnet-sdk-*</code></td><td>Paquetes oficiales en los repos de Fedora.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># C / C++</span>
+$ sudo dnf group install "Development Tools"
+$ sudo dnf install cmake ninja-build pkgconf-pkg-config clang
+$ sudo dnf install openssl-devel libcurl-devel
+
+<span class="c"># Python: nunca instales en el Python del sistema</span>
+$ sudo dnf install python3 python3-pip python3-devel
+$ python3 -m venv .venv
+$ source .venv/bin/activate
+$ pip install -r requirements.txt
+$ pipx install poetry
+$ uv venv &amp;&amp; source .venv/bin/activate
+
+<span class="c"># Node: elige un gestor de versiones</span>
+$ sudo dnf install nodejs npm
+$ node --version
+$ corepack enable
+$ fnm install --lts
+$ npm config set prefix "$HOME/.local"
+
+<span class="c"># Rust</span>
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+$ source "$HOME/.cargo/env"
+$ rustup component add rust-analyzer clippy rustfmt
+
+<span class="c"># Go y Java</span>
+$ sudo dnf install golang java-21-openjdk-devel
+$ go version
+$ sudo alternatives --config java</code></pre>
+
+  <div class="callout warn">
+    <span class="t">El error de PEP 668</span>
+    <p>
+      Si ves <em>externally-managed-environment</em> al usar <code>pip install</code>, no lo
+      desactives con <code>--break-system-packages</code>. Significa que estás a punto de
+      sobrescribir paquetes de RPM. Crea un <code>venv</code> o usa <code>pipx</code> para
+      herramientas CLI.
+    </p>
+  </div>
+
+  <h3 id="c07-2">7.2 IDEs y editores</h3>
+  <p>
+    VS Code es el caso más delicado: la versión Flatpak está en sandbox y no ve tus toolchains del
+    sistema sin permisos extra; la versión RPM se integra mejor con terminales, extensiones y
+    depuradores. Para desarrollo nativo, el RPM del repositorio de Microsoft suele ser la opción
+    menos problemática.
+  </p>
+
+<pre><code><span class="c"># VS Code desde el repositorio oficial de Microsoft</span>
+$ sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+$ sudo tee /etc/yum.repos.d/vscode.repo &gt; /dev/null &lt;&lt;'EOF'
+[code]
+name=Visual Studio Code
+baseurl=https://packages.microsoft.com/yumrepos/vscode
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+EOF
+$ sudo dnf install code
+$ code --install-extension ms-python.python
+
+<span class="c"># Alternativa Flatpak (con permisos explícitos)</span>
+$ flatpak install flathub com.visualstudio.code
+$ flatpak override --user --filesystem=home com.visualstudio.code
+
+<span class="c"># JetBrains Toolbox</span>
+$ mkdir -p ~/.local/opt &amp;&amp; cd ~/.local/opt
+$ tar -xzf ~/Descargas/jetbrains-toolbox-*.tar.gz
+$ ./jetbrains-toolbox
+
+<span class="c"># Editores ligeros</span>
+$ sudo dnf install neovim kate
+$ sudo dnf install jetbrains-mono-fonts fira-code-fonts</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Herramienta</th><th>Instalación recomendada</th><th>Nota</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VS Code</td><td>RPM de Microsoft</td><td>Mejor integración con toolchains y terminal.</td></tr>
+        <tr><td>JetBrains (IDEA, PyCharm…)</td><td>Toolbox (tar.gz)</td><td>Actualizaciones y versiones por proyecto.</td></tr>
+        <tr><td>Neovim</td><td>DNF o AppImage</td><td>Configuración en <code>~/.config/nvim</code>.</td></tr>
+        <tr><td>Kate</td><td>DNF (incluido)</td><td>LSP, sesiones y terminal integrada.</td></tr>
+        <tr><td>Zed</td><td>Flatpak o binario</td><td>Editor nativo, en evolución.</td></tr>
+        <tr><td>Cursor / Windsurf</td><td>AppImage o RPM del fabricante</td><td>Verifica dependencias y actualizaciones.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c07-3">7.3 Contenedores: Podman, Toolbox, Distrobox</h3>
+  <p>
+    Fedora usa <strong>Podman</strong> por defecto. Es compatible con la CLI de Docker, pero no
+    necesita un daemon: cada contenedor corre como un proceso más, y en modo rootless sin
+    privilegios. Para proyectos que necesitan un entorno Linux distinto, Toolbox y Distrobox crean
+    contenedores integrados con tu home y tu sesión.
+  </p>
+
+<pre><code><span class="c"># Podman rootless</span>
+$ sudo dnf install podman podman-compose buildah skopeo
+$ podman run --rm -it fedora:44 bash
+$ podman ps -a
+$ podman images
+
+<span class="c"># Compatibilidad con docker compose</span>
+$ systemctl --user enable --now podman.socket
+$ export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
+$ docker compose up -d
+
+<span class="c"># Toolbox: entorno Fedora mutable para desarrollo</span>
+$ toolbox create --distro fedora --release 44
+$ toolbox list
+$ toolbox enter fedora-toolbox-44
+
+<span class="c"># Distrobox: cualquier distribución, integrada con el host</span>
+$ sudo dnf install distrobox
+$ distrobox create --name ubuntu-dev --image ubuntu:24.04
+$ distrobox enter ubuntu-dev</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Herramienta</th><th>Aislamiento</th><th>Integración con el host</th><th>Uso típico</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Podman</td><td>Alto (namespaces, rootless).</td><td>Explícita: volúmenes y puertos.</td><td>Servicios, builds, CI local.</td></tr>
+        <tr><td>Toolbox</td><td>Medio.</td><td>Home, sesión y Wayland compartidos.</td><td>Toolchains y paquetes de desarrollo.</td></tr>
+        <tr><td>Distrobox</td><td>Medio.</td><td>Muy alta: exporta binarios al host.</td><td>Probar otra distro o software empaquetado.</td></tr>
+        <tr><td>Flatpak</td><td>Alto (bubblewrap).</td><td>Portals y permisos declarados.</td><td>Apps de escritorio.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Quadlet: contenedores como servicios</h4>
+  <p>
+    En lugar de recordar comandos <code>podman run</code>, describe el contenedor como una unidad de
+    systemd de usuario. Quadlet genera el servicio a partir de un archivo <code>.container</code>.
+  </p>
+
+<pre><code><span class="c"># ~/.config/containers/systemd/devapi.container</span>
+[Container]
+Image=node:22
+PublishPort=3000:3000
+Volume=%h/Proyectos/api:/app:Z
+WorkingDir=/app
+Exec=npm run dev
+
+[Install]
+WantedBy=default.target</code></pre>
+
+<pre><code>$ systemctl --user daemon-reload
+$ systemctl --user start devapi
+$ systemctl --user status devapi
+$ journalctl --user -u devapi -f</code></pre>
+
+  <h3 id="c07-4">7.4 Git, SSH y GPG</h3>
+  <p>
+    La configuración de Git es idéntica a la de Windows; cambian el editor, el helper de
+    credenciales y la integración con el llavero. En Plasma, KWallet puede actuar como almacén de
+    secretos, y <code>libsecret</code> conecta Git con él.
+  </p>
+
+<pre><code><span class="c"># Identidad y valores por defecto</span>
+$ git config --global user.name "Tu Nombre"
+$ git config --global user.email "tu@correo.dev"
+$ git config --global init.defaultBranch main
+$ git config --global core.editor "kate -b"
+$ git config --global pull.rebase false
+$ git config --global credential.helper libsecret
+
+<span class="c"># Claves SSH</span>
+$ ssh-keygen -t ed25519 -C "tu@correo.dev"
+$ eval "$(ssh-agent -s)"
+$ ssh-add ~/.ssh/id_ed25519
+$ ssh -T git@github.com
+
+<span class="c"># Firmar commits con SSH (más simple que GPG)</span>
+$ git config --global gpg.format ssh
+$ git config --global user.signingkey ~/.ssh/id_ed25519.pub
+$ git config --global commit.gpgsign true
+
+<span class="c"># O con GPG</span>
+$ gpg --full-generate-key
+$ gpg --list-secret-keys --keyid-format=long
+$ git config --global user.signingkey &lt;ID_DE_LA_CLAVE&gt;
+$ gpg --armor --export &lt;ID_DE_LA_CLAVE&gt;</code></pre>
+
+  <div class="callout">
+    <span class="t">SSH vs GPG</span>
+    <p>
+      Para firmar commits, SSH es suficiente en GitHub y GitLab y reutiliza la clave que ya tienes.
+      GPG sigue siendo necesario si tu organización lo exige o si firmas correo y tags con la misma
+      identidad.
+    </p>
+  </div>
+
+  <h3 id="c07-5">7.5 Virtualización con KVM</h3>
+  <p>
+    KVM es la virtualización nativa de Linux: el kernel actúa como hipervisor y QEMU emula el
+    hardware. <code>libvirt</code> gestiona las máquinas y <code>virt-manager</code> ofrece una
+    interfaz gráfica. El rendimiento es muy superior a VirtualBox para cargas de trabajo serias.
+  </p>
+
+<pre><code><span class="c"># Instalar el stack</span>
+$ sudo dnf group install virtualization
+$ sudo systemctl enable --now libvirtd
+$ sudo usermod -aG libvirt,kvm "$USER"
+$ newgrp libvirt
+
+<span class="c"># Interfaz gráfica y estado</span>
+$ virt-manager
+$ virsh list --all
+
+<span class="c"># Carpetas compartidas con virtiofs</span>
+$ sudo dnf install virtiofsd
+$ qemu-img create -f qcow2 ~/VMs/disco.qcow2 40G
+
+<span class="c"># VirtualBox (RPM Fusion) si lo necesitas</span>
+$ sudo dnf install VirtualBox akmod-VirtualBox</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Hyper-V</td><td>KVM + libvirt</td></tr>
+        <tr><td>WSL2</td><td>VM con virtiofs, Toolbox o Distrobox</td></tr>
+        <tr><td>Carpetas compartidas</td><td>virtiofs, 9p o red</td></tr>
+        <tr><td>Puntos de control</td><td>Snapshots de qcow2</td></tr>
+        <tr><td>GPU passthrough</td><td>VFIO + IOMMU</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">Grupos y sesión</span>
+    <p>
+      Añadirte a <code>libvirt</code> y <code>kvm</code> no surte efecto en la sesión actual. Cierra
+      sesión o usa <code>newgrp libvirt</code>. Sin eso, <code>virt-manager</code> pedirá la
+      contraseña de root para cada operación.
+    </p>
+  </div>
+
+  <h3 id="c07-6">7.6 Servicios de desarrollo con systemd --user</h3>
+  <p>
+    Para servidores locales —una API, una base de datos, un worker— no necesitas Docker ni un
+    script eterno en una pestaña. Una unidad de usuario de systemd arranca con la sesión, se
+    reinicia si falla y escribe en el journal.
+  </p>
+
+<pre><code><span class="c"># ~/.config/systemd/user/devapi.service</span>
+[Unit]
+Description=API de desarrollo
+After=network.target
+
+[Service]
+WorkingDirectory=%h/Proyectos/api
+ExecStart=/usr/bin/npm run dev
+Restart=on-failure
+Environment=NODE_ENV=development
+
+[Install]
+WantedBy=default.target</code></pre>
+
+<pre><code>$ systemctl --user daemon-reload
+$ systemctl --user enable --now devapi.service
+$ systemctl --user status devapi
+$ journalctl --user -u devapi -f
+
+<span class="c"># Mantener servicios activos tras cerrar sesión</span>
+$ loginctl enable-linger "$USER"</code></pre>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Programador de tareas</td><td><code>systemd</code> timers (<code>--user</code>)</td></tr>
+        <tr><td>Servicio de Windows</td><td>Unidad <code>.service</code> del sistema</td></tr>
+        <tr><td>App de bandeja que arranca sola</td><td><code>~/.config/autostart/*.desktop</code></td></tr>
+        <tr><td>Tarea al iniciar sesión</td><td><code>systemctl --user enable</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section id="c08" aria-labelledby="t08">
+  <h2 id="t08"><span class="num">08</span> Seguridad y mantenimiento</h2>
+  <p class="lead">
+    Fedora viene con SELinux enforcing, firewalld activo y actualizaciones firmadas. La seguridad no
+    consiste en añadir capas, sino en entender las que ya están y no desactivarlas por comodidad.
+  </p>
+
+  <h3 id="c08-1">8.1 SELinux y firewalld</h3>
+  <p>
+    <strong>SELinux</strong> etiqueta procesos y archivos con contextos y aplica una política: un
+    proceso solo accede a lo que su dominio permite, aunque los permisos POSIX digan otra cosa. Es
+    una capa de control de acceso obligatorio (MAC) que complementa los bits <code>rwx</code>.
+    <strong>firewalld</strong> gestiona el cortafuegos por zonas y servicios, con cambios en caliente.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Concepto</th><th>Qué significa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Contexto</td><td>Etiqueta <code>usuario:rol:tipo:nivel</code> aplicada a procesos y archivos.</td></tr>
+        <tr><td>Modo enforcing</td><td>Bloquea y registra las violaciones de política.</td></tr>
+        <tr><td>Modo permissive</td><td>Solo registra; útil para depurar, no para producción.</td></tr>
+        <tr><td>Booleano</td><td>Interruptor de política (por ejemplo, permitir a httpd conectarse a la red).</td></tr>
+        <tr><td>AVC</td><td>Registro de una denegación; la pista principal para diagnosticar.</td></tr>
+        <tr><td>Zona de firewalld</td><td>Conjunto de reglas asociado a una interfaz o red.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Estado de SELinux</span>
+$ getenforce
+Enforcing
+$ sestatus
+
+<span class="c"># Contextos de archivos y procesos</span>
+$ ls -Z /var/www/html
+$ ps -eZ | grep httpd
+
+<span class="c"># Corregir un contexto tras mover archivos</span>
+$ sudo semanage fcontext -a -t httpd_sys_content_t "/srv/www(/.*)?"
+$ sudo restorecon -Rv /srv/www
+
+<span class="c"># Diagnóstico de denegaciones</span>
+$ sudo ausearch -m AVC -ts recent
+$ sudo sealert -a /var/log/audit/audit.log
+
+<span class="c"># Firewall</span>
+$ sudo firewall-cmd --state
+$ sudo firewall-cmd --get-active-zones
+$ sudo firewall-cmd --list-all
+$ sudo firewall-cmd --add-service=http --permanent
+$ sudo firewall-cmd --add-port=8080/tcp --permanent
+$ sudo firewall-cmd --reload</code></pre>
+
+  <div class="callout danger">
+    <span class="t">No desactives SELinux</span>
+    <p>
+      <code>setenforce 0</code> es una herramienta de diagnóstico temporal, no una solución. Si una
+      app falla por SELinux, el journal dice exactamente qué contexto falta. Desactivarlo convierte
+      un error configurable en una vulnerabilidad permanente.
+    </p>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th class="win">Windows</th><th class="lin">Fedora</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Windows Defender Firewall</td><td>firewalld</td></tr>
+        <tr><td>ACL de NTFS</td><td>Permisos POSIX + SELinux</td></tr>
+        <tr><td>Control de cuentas de usuario</td><td>sudo + polkit</td></tr>
+        <tr><td>SmartScreen</td><td>Repositorios firmados y Flatpak sandbox</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c08-2">8.2 Copias de seguridad y snapshots</h3>
+  <p>
+    Un snapshot de Btrfs vive en el mismo disco: protege de un cambio malo, no de un fallo de
+    hardware ni de un robo. Una copia de seguridad real está en otro medio y, preferiblemente, en
+    otra ubicación. La regla 3-2-1 sigue vigente: tres copias, dos medios, una fuera del sitio.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Qué</th><th>Herramienta</th><th>Frecuencia</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Home y proyectos</td><td>restic, borg, rsync</td><td>Diaria o al cerrar el día.</td></tr>
+        <tr><td>Dotfiles y configuración</td><td>Git (chezmoi, stow)</td><td>En cada cambio.</td></tr>
+        <tr><td>Lista de paquetes</td><td><code>dnf history</code>, <code>flatpak list</code></td><td>Al reconstruir.</td></tr>
+        <tr><td>Sistema antes de actualizar</td><td>snapper, Timeshift, snapshot Btrfs</td><td>Antes de cambios grandes.</td></tr>
+        <tr><td>Secretos</td><td>Gestor de contraseñas + copia cifrada</td><td>Continua.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Restic: repositorio cifrado y copias incrementales</span>
+$ sudo dnf install restic
+$ export RESTIC_REPOSITORY=/run/media/jose/backup/restic
+$ export RESTIC_PASSWORD_FILE=~/.config/restic/pass
+$ restic init
+$ restic backup ~/Proyectos ~/Documentos ~/.config
+$ restic snapshots
+$ restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+$ restic restore latest --target /tmp/restauracion
+
+<span class="c"># Snapshot manual de Btrfs</span>
+$ sudo btrfs subvolume snapshot -r / /.snapshots/root-$(date +%F-%H%M)
+$ sudo btrfs subvolume list /
+
+<span class="c"># Snapper (si lo instalas)</span>
+$ sudo dnf install snapper
+$ sudo snapper -c root create-config /
+$ sudo snapper -c root list</code></pre>
+
+  <div class="callout">
+    <span class="t">Snapshots y GRUB</span>
+    <p>
+      Los snapshots de Btrfs no aparecen automáticamente en GRUB. Herramientas como
+      <code>grub-btrfs</code> o <code>snapper</code> con integración añaden entradas de arranque.
+      Sin eso, restaurar requiere arrancar desde un live USB o montar el subvolumen desde otra
+      sesión.
+    </p>
+  </div>
+
+  <h3 id="c08-3">8.3 Diagnóstico y logs</h3>
+  <p>
+    Linux registra casi todo, pero en varios sitios: el journal de systemd, los logs de la sesión
+    gráfica, el ring buffer del kernel y los archivos de cada aplicación. La habilidad está en
+    empezar por el síntoma y bajar hasta el primer error, no en leer todo.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Síntoma</th><th>Primer comando</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Un servicio no arranca</td><td><code>systemctl status &lt;unidad&gt;</code></td></tr>
+        <tr><td>Error en el arranque</td><td><code>journalctl -b -p err</code></td></tr>
+        <tr><td>Fallo de hardware</td><td><code>dmesg -T</code></td></tr>
+        <tr><td>Disco lleno</td><td><code>df -h</code>, <code>du -xhd1 /</code></td></tr>
+        <tr><td>Consumo de memoria</td><td><code>free -h</code>, <code>smem</code></td></tr>
+        <tr><td>Puerto ocupado</td><td><code>ss -tulpn</code>, <code>lsof -i :3000</code></td></tr>
+        <tr><td>Red</td><td><code>nmcli device status</code>, <code>ping</code>, <code>tracepath</code></td></tr>
+        <tr><td>Pantalla</td><td><code>kscreen-doctor -o</code>, <code>journalctl --user -b</code></td></tr>
+        <tr><td>Audio</td><td><code>wpctl status</code>, <code>pavucontrol</code></td></tr>
+        <tr><td>Paquetes inconsistentes</td><td><code>rpm -Va</code>, <code>sudo dnf distro-sync</code></td></tr>
+        <tr><td>Flatpak roto</td><td><code>flatpak repair</code></td></tr>
+        <tr><td>Disco SMART</td><td><code>sudo smartctl -a /dev/nvme0n1</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<pre><code><span class="c"># Kit de primeros auxilios</span>
+$ systemctl --failed
+$ journalctl -b -p err --no-pager
+$ journalctl -u &lt;servicio&gt; --since "1 hour ago"
+$ dmesg -T | tail -n 50
+$ df -hT
+$ free -h
+$ ss -tulpn
+$ rpm -Va --nofiles --nodigest | head
+
+<span class="c"># Un crash de una app</span>
+$ coredumpctl list
+$ coredumpctl info &lt;pid&gt;
+
+<span class="c"># Estado de la sesión gráfica</span>
+$ journalctl --user -b --no-pager | tail -n 100</code></pre>
+
+  <div class="callout tip">
+    <span class="t">Lee el primer error</span>
+    <p>
+      Los logs encadenan causas: un fallo de disco produce errores de sistema de archivos, que
+      producen fallos de servicios, que producen errores de aplicaciones. El primero de la cadena
+      suele ser el relevante; los siguientes son consecuencias.
+    </p>
+  </div>
+</section>
+
+<section id="c09" aria-labelledby="t09">
+  <h2 id="t09"><span class="num">09</span> Problemas comunes</h2>
+  <p class="lead">
+    Una selección de los tropiezos habituales en Fedora KDE, con el diagnóstico y la solución. Si tu
+    caso no está aquí, el capítulo 8 tiene las herramientas para encontrarlo.
+  </p>
+
+  <details>
+    <summary>Pantalla negra o resolución incorrecta tras actualizar NVIDIA</summary>
+    <div class="details-body">
+      <p>
+        Lo más probable es que el módulo no se haya recompilado contra el kernel nuevo o que Secure
+        Boot haya rechazado la firma. Arranca el kernel anterior desde GRUB y comprueba:
+      </p>
+<pre><code>$ uname -r
+$ modinfo -F version nvidia
+$ dnf list --installed | grep -E 'nvidia|akmod'
+$ sudo akmods --force
+$ sudo dracut --force
+$ sudo reboot</code></pre>
+      <p>
+        Si el módulo no aparece, revisa <code>journalctl -b -p err</code> y
+        <code>dmesg | grep -i nvidia</code>. Con Secure Boot activo, verifica que la clave de akmods
+        esté enrollada con <code>mokutil --list-enrolled</code>.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>No hay audio o suena por el dispositivo equivocado</summary>
+    <div class="details-body">
+      <p>
+        PipeWire sustituyó a PulseAudio. Comprueba el grafo, el perfil y la salida por defecto:
+      </p>
+<pre><code>$ wpctl status
+$ wpctl set-default &lt;id&gt;
+$ systemctl --user restart wireplumber
+$ pavucontrol</code></pre>
+      <p>
+        Si el dispositivo no aparece, mira <code>dmesg -T | grep -i audio</code> y asegúrate de que
+        el firmware <code>sof-firmware</code> esté instalado en portátiles recientes.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Wi-Fi lento, se desconecta o no aparece</summary>
+    <div class="details-body">
+      <p>
+        Empieza por NetworkManager y el driver, no por reinstalar:
+      </p>
+<pre><code>$ nmcli device status
+$ nmcli connection show
+$ nmcli device wifi list
+$ dmesg -T | grep -iE 'iwlwifi|ath|rtw|firmware'
+$ sudo dnf install linux-firmware</code></pre>
+      <p>
+        En algunos chips Intel, el ahorro de energía causa desconexiones. Como prueba temporal:
+        <code>sudo iw dev wlan0 set power_save off</code>. Si funciona, hazlo permanente con una regla de
+        NetworkManager o un módulo de configuración.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>La impresora no aparece o no imprime</summary>
+    <div class="details-body">
+      <p>
+        CUPS se activa por socket. Comprueba el servicio, la cola y el descubrimiento IPP:
+      </p>
+<pre><code>$ systemctl status cups
+$ lpstat -t
+$ system-config-printer
+$ sudo firewall-cmd --list-all</code></pre>
+      <p>
+        Para impresoras modernas, usa <em>driverless IPP</em> con la URI
+        <code>ipp://direccion/ipp/print</code>. Evita drivers propietarios si el modelo soporta
+        AirPrint/IPP Everywhere.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>«externally-managed-environment» al usar pip</summary>
+    <div class="details-body">
+      <p>
+        Es PEP 668: Fedora protege los paquetes de Python del sistema. No uses
+        <code>--break-system-packages</code>. Crea un entorno virtual o instala la herramienta con
+        pipx:
+      </p>
+<pre><code>$ python3 -m venv .venv
+$ source .venv/bin/activate
+$ pip install -r requirements.txt
+$ deactivate
+
+$ pipx install poetry
+$ pipx install ruff</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Una app Flatpak no ve mis archivos o no puede guardar</summary>
+    <div class="details-body">
+      <p>
+        El sandbox solo concede lo declarado. Revisa permisos y añade el directorio concreto, no el
+        home entero si puedes evitarlo:
+      </p>
+<pre><code>$ flatpak permissions
+$ flatpak override --user --filesystem=~/Proyectos org.example.App
+$ flatpak override --user --filesystem=xdg-download org.example.App
+$ flatpak override --user --nofilesystem=home org.example.App</code></pre>
+      <p>
+        Flatseal ofrece la misma funcionalidad con interfaz gráfica y muestra qué portals usa cada
+        aplicación.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Compartir pantalla, OBS o Discord no funcionan en Wayland</summary>
+    <div class="details-body">
+      <p>
+        La captura pasa por <code>xdg-desktop-portal-kde</code> y PipeWire. Verifica que ambos estén
+        activos y que la app use el portal:
+      </p>
+<pre><code>$ systemctl --user status xdg-desktop-portal-kde
+$ systemctl --user restart xdg-desktop-portal-kde
+$ flatpak permissions</code></pre>
+      <p>
+        En Electron/Chromium, algunas apps necesitan <code>--ozone-platform-hint=auto</code> o
+        <code>--enable-features=WebRTCPipeWireCapturer</code>. Si nada funciona, prueba la sesión X11
+        como último recurso.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Windows no aparece en GRUB o el reloj está desincronizado</summary>
+    <div class="details-body">
+      <p>
+        Fedora puede no detectar Windows si <code>os-prober</code> está desactivado. Instálalo,
+        habilítalo y regenera GRUB:
+      </p>
+<pre><code>$ sudo dnf install os-prober
+$ echo 'GRUB_DISABLE_OS_PROBER=false' | sudo tee -a /etc/default/grub
+$ sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+$ sudo timedatectl set-local-rtc 0</code></pre>
+      <p>
+        El reloj se debe a que Windows usa hora local y Linux UTC. La solución recomendada es hacer
+        que Windows use UTC (clave <code>RealTimeIsUniversal</code>), no configurar Linux en hora
+        local.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Una actualización se interrumpió y el sistema quedó inconsistente</summary>
+    <div class="details-body">
+      <p>
+        No reinstales todavía. DNF guarda transacciones y RPM puede verificar archivos:
+      </p>
+<pre><code>$ sudo dnf history
+$ sudo dnf history undo &lt;id&gt;
+$ sudo dnf distro-sync --refresh
+$ sudo rpm -Va --nofiles --nodigest
+$ sudo dnf repoquery --unsatisfied</code></pre>
+      <p>
+        Si el sistema no arranca, entra por una TTY (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F3</kbd>)
+        o desde un live USB con <code>chroot</code>. Un snapshot previo es la vía más rápida.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>¿Necesito antivirus?</summary>
+    <div class="details-body">
+      <p>
+        No hay un antivirus residente equivalente a Windows Defender, y no es la prioridad. Las
+        amenazas reales en un escritorio Linux suelen venir de extensiones de navegador, paquetes de
+        npm/pip maliciosos, repositorios de terceros y contraseñas reutilizadas. Mantén el sistema
+        actualizado, instala desde fuentes oficiales y revisa permisos de Flatpak.
+      </p>
+      <p>
+        Si intercambias archivos con Windows, puedes instalar <code>clamav</code> para escaneos
+        puntuales, pero no sustituye la higiene operativa.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>¿Puedo usar Office, Photoshop o Adobe?</summary>
+    <div class="details-body">
+      <p>
+        No de forma nativa. Alternativas: LibreOffice o OnlyOffice para documentos, GIMP y Krita para
+        imagen, Inkscape para vector, DaVinci Resolve para vídeo. Para apps Windows concretas:
+        Bottles/Wine, una VM con KVM, o una suscripción web cuando exista. Adobe CC no tiene soporte
+        oficial en Linux.
+      </p>
+    </div>
+  </details>
+
+  <details>
+    <summary>¿Dónde pido ayuda?</summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>Ask Fedora</strong>: foro oficial, buena señal para problemas de paquetes y upgrades.</li>
+        <li><strong>KDE Discuss</strong>: específico de Plasma, KWin y apps de KDE.</li>
+        <li><strong>Fedora Docs</strong>: documentación oficial y guías de administración.</li>
+        <li><strong>Arch Wiki</strong>: aunque no uses Arch, muchas explicaciones son válidas y precisas.</li>
+        <li><strong>Matrix / Telegram</strong>: canales de Fedora y KDE, útiles para dudas rápidas.</li>
+      </ul>
+      <p>
+        Al preguntar, incluye versión (<code>cat /etc/fedora-release</code>), kernel
+        (<code>uname -r</code>), sesión (<code>echo $XDG_SESSION_TYPE</code>), el comando exacto y el
+        error completo. Un buen reporte ahorra tres rondas de preguntas.
+      </p>
+    </div>
+  </details>
+</section>
+<section id="c10" aria-labelledby="t10">
+  <h2 id="t10"><span class="num">10</span> Referencia</h2>
+  <p class="lead">
+    Glosario, chuleta filtrable y enlaces. Esta sección está pensada para consulta rápida, no para
+    lectura lineal.
+  </p>
+
+  <h3 id="c10-1">10.1 Glosario</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Término</th><th>Definición</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Kernel</td><td>Núcleo del sistema: gestiona hardware, memoria, procesos y syscalls.</td></tr>
+        <tr><td>Distribución</td><td>Ensamblaje de kernel, userland, repositorios y políticas. Fedora es una.</td></tr>
+        <tr><td>Userland</td><td>Programas que corren fuera del kernel: libc, coreutils, systemd, shell.</td></tr>
+        <tr><td>Repositorio</td><td>Servidor con paquetes, índices y firma GPG.</td></tr>
+        <tr><td>Paquete</td><td>Unidad instalable con metadatos, dependencias y archivos.</td></tr>
+        <tr><td>Dependencia</td><td>Otro paquete o biblioteca que un paquete necesita para funcionar.</td></tr>
+        <tr><td>RPM</td><td>Formato de paquete y base de datos de Fedora.</td></tr>
+        <tr><td>DNF5</td><td>Gestor de paquetes de Fedora basado en libsolv.</td></tr>
+        <tr><td>Flatpak</td><td>Formato de apps de escritorio con runtime propio y sandbox.</td></tr>
+        <tr><td>Runtime</td><td>Conjunto de bibliotecas compartidas que usa un Flatpak.</td></tr>
+        <tr><td>Sandbox</td><td>Aislamiento de una app respecto del resto del sistema.</td></tr>
+        <tr><td>Portal</td><td>Interfaz mediada para que una app sandbox acceda a archivos, pantalla o teclado.</td></tr>
+        <tr><td>Wayland</td><td>Protocolo de servidor gráfico moderno; KWin lo implementa.</td></tr>
+        <tr><td>X11</td><td>Servidor gráfico tradicional, aún disponible como sesión alternativa.</td></tr>
+        <tr><td>XWayland</td><td>Capa que permite ejecutar apps X11 dentro de una sesión Wayland.</td></tr>
+        <tr><td>Compositor</td><td>Programa que combina ventanas y aplica efectos; en Plasma es KWin.</td></tr>
+        <tr><td>KWin</td><td>Gestor de ventanas y compositor de Plasma.</td></tr>
+        <tr><td>plasmashell</td><td>Proceso que dibuja panel, escritorio y widgets.</td></tr>
+        <tr><td>KDE Frameworks</td><td>Bibliotecas compartidas de KDE (KConfig, KIO, Solid…).</td></tr>
+        <tr><td>systemd</td><td>Init y gestor de servicios, timers, montajes y sesiones.</td></tr>
+        <tr><td>Unidad</td><td>Recurso declarativo de systemd (<code>.service</code>, <code>.timer</code>…).</td></tr>
+        <tr><td>journald</td><td>Servicio de logs de systemd; se consulta con <code>journalctl</code>.</td></tr>
+        <tr><td>GRUB</td><td>Gestor de arranque que carga kernel e initramfs.</td></tr>
+        <tr><td>initramfs</td><td>Sistema mínimo en RAM que monta la raíz real y arranca systemd.</td></tr>
+        <tr><td>Secure Boot</td><td>Verificación de firmas del firmware antes de ejecutar el bootloader.</td></tr>
+        <tr><td>MOK</td><td>Clave que el propietario del equipo enrola para firmar módulos propios.</td></tr>
+        <tr><td>SELinux</td><td>Control de acceso obligatorio basado en contextos y políticas.</td></tr>
+        <tr><td>firewalld</td><td>Gestor de cortafuegos por zonas y servicios.</td></tr>
+        <tr><td>polkit</td><td>Marco de autorización para acciones privilegiadas desde el escritorio.</td></tr>
+        <tr><td>Btrfs</td><td>Sistema de archivos con subvolúmenes, snapshots y compresión.</td></tr>
+        <tr><td>Subvolumen</td><td>Árbol independiente dentro de un Btrfs; se puede snapshotear.</td></tr>
+        <tr><td>Snapshot</td><td>Copia instantánea y copy-on-write de un subvolumen.</td></tr>
+        <tr><td>LUKS2</td><td>Formato estándar de cifrado de disco en Linux.</td></tr>
+        <tr><td>zram</td><td>Swap comprimida en RAM; valor por defecto en Fedora.</td></tr>
+        <tr><td>PipeWire</td><td>Servidor multimedia para audio y vídeo; sustituye a PulseAudio.</td></tr>
+        <tr><td>WirePlumber</td><td>Gestor de sesiones y políticas de PipeWire.</td></tr>
+        <tr><td>Podman</td><td>Motor de contenedores sin daemon, rootless por defecto.</td></tr>
+        <tr><td>Toolbox</td><td>Contenedor Fedora mutable integrado con el host, pensado para desarrollo.</td></tr>
+        <tr><td>Distrobox</td><td>Contenedor de cualquier distribución con integración profunda al host.</td></tr>
+        <tr><td>KVM / libvirt</td><td>Hipervisor nativo y capa de gestión de máquinas virtuales.</td></tr>
+        <tr><td>Dotfiles</td><td>Archivos de configuración que empiezan con punto en el home.</td></tr>
+        <tr><td>XDG</td><td>Especificación de rutas estándar (<code>~/.config</code>, <code>~/.cache</code>…).</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c10-2">10.2 Chuleta de comandos</h3>
+  <p>Escribe para filtrar por comando, descripción o equivalente de Windows.</p>
+
+  <div class="search-field" style="max-width: 440px; margin: 1rem 0;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+    </svg>
+    <input id="cheatFilter" type="search" placeholder="Filtrar comandos…" autocomplete="off" aria-label="Filtrar la chuleta de comandos">
+  </div>
+
+  <div class="table-wrap">
+    <table id="cheatTable">
+      <thead>
+        <tr><th>Qué quieres hacer</th><th>Comando</th><th class="win">Windows</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Ver versión del sistema</td><td><code>cat /etc/fedora-release</code></td><td><code>winver</code></td></tr>
+        <tr><td>Ver kernel</td><td><code>uname -r</code></td><td><code>systeminfo</code></td></tr>
+        <tr><td>Información del equipo</td><td><code>hostnamectl</code></td><td><code>systeminfo</code></td></tr>
+        <tr><td>Listar archivos</td><td><code>ls -la</code></td><td><code>dir</code></td></tr>
+        <tr><td>Cambiar de directorio</td><td><code>cd ruta</code></td><td><code>cd</code></td></tr>
+        <tr><td>Copiar</td><td><code>cp -r origen destino</code></td><td><code>copy</code></td></tr>
+        <tr><td>Mover o renombrar</td><td><code>mv origen destino</code></td><td><code>move</code></td></tr>
+        <tr><td>Borrar</td><td><code>rm -rf ruta</code></td><td><code>del</code></td></tr>
+        <tr><td>Crear enlace simbólico</td><td><code>ln -s destino enlace</code></td><td><code>mklink</code></td></tr>
+        <tr><td>Buscar archivos</td><td><code>find . -name "*.log"</code></td><td><code>dir /s</code></td></tr>
+        <tr><td>Buscar texto</td><td><code>rg "patrón"</code></td><td><code>findstr</code></td></tr>
+        <tr><td>Ver permisos</td><td><code>ls -l</code>, <code>getfacl</code></td><td><code>icacls</code></td></tr>
+        <tr><td>Cambiar permisos</td><td><code>chmod 644 archivo</code></td><td><code>icacls</code></td></tr>
+        <tr><td>Cambiar dueño</td><td><code>sudo chown user:group ruta</code></td><td><code>takeown</code></td></tr>
+        <tr><td>Ver procesos</td><td><code>ps aux</code>, <code>top</code></td><td><code>tasklist</code></td></tr>
+        <tr><td>Matar proceso</td><td><code>kill -TERM &lt;pid&gt;</code></td><td><code>taskkill</code></td></tr>
+        <tr><td>Estado de un servicio</td><td><code>systemctl status sshd</code></td><td><code>sc query</code></td></tr>
+        <tr><td>Arrancar servicio</td><td><code>sudo systemctl start sshd</code></td><td><code>net start</code></td></tr>
+        <tr><td>Habilitar al inicio</td><td><code>sudo systemctl enable sshd</code></td><td><code>sc config</code></td></tr>
+        <tr><td>Ver logs</td><td><code>journalctl -xe</code></td><td>Visor de eventos</td></tr>
+        <tr><td>Instalar paquete</td><td><code>sudo dnf install paquete</code></td><td><code>winget install</code></td></tr>
+        <tr><td>Buscar paquete</td><td><code>dnf search texto</code></td><td><code>winget search</code></td></tr>
+        <tr><td>Actualizar sistema</td><td><code>sudo dnf upgrade --refresh</code></td><td><code>winget upgrade --all</code></td></tr>
+        <tr><td>Ver instalados</td><td><code>dnf list --installed</code></td><td><code>winget list</code></td></tr>
+        <tr><td>Quién provee un archivo</td><td><code>dnf provides '*/bin/rg'</code></td><td><code>where</code></td></tr>
+        <tr><td>Historial de paquetes</td><td><code>dnf history</code></td><td>—</td></tr>
+        <tr><td>Instalar app Flatpak</td><td><code>flatpak install flathub app.id</code></td><td>Microsoft Store</td></tr>
+        <tr><td>Actualizar Flatpaks</td><td><code>flatpak update</code></td><td>—</td></tr>
+        <tr><td>Ver IP y red</td><td><code>ip a</code>, <code>nmcli device status</code></td><td><code>ipconfig</code></td></tr>
+        <tr><td>Ver puertos</td><td><code>ss -tulpn</code></td><td><code>netstat -ano</code></td></tr>
+        <tr><td>Probar conectividad</td><td><code>ping host</code>, <code>tracepath host</code></td><td><code>ping</code>, <code>tracert</code></td></tr>
+        <tr><td>Conectar por SSH</td><td><code>ssh usuario@host</code></td><td>PuTTY</td></tr>
+        <tr><td>Copiar a servidor</td><td><code>rsync -avz dir/ host:/ruta/</code></td><td>WinSCP</td></tr>
+        <tr><td>Comprimir</td><td><code>tar -czf out.tar.gz dir/</code></td><td><code>Compress-Archive</code></td></tr>
+        <tr><td>Extraer</td><td><code>tar -xzf out.tar.gz</code></td><td><code>Expand-Archive</code></td></tr>
+        <tr><td>Espacio en disco</td><td><code>df -h</code>, <code>du -sh *</code></td><td><code>dir</code>, Administración de discos</td></tr>
+        <tr><td>Particiones</td><td><code>lsblk -f</code>, <code>findmnt</code></td><td><code>diskpart</code></td></tr>
+        <tr><td>Estado de SELinux</td><td><code>getenforce</code></td><td>—</td></tr>
+        <tr><td>Abrir puerto</td><td><code>sudo firewall-cmd --add-port=8080/tcp --permanent</code></td><td>Firewall de Windows</td></tr>
+        <tr><td>Contenedor rápido</td><td><code>podman run --rm -it fedora:44 bash</code></td><td>—</td></tr>
+        <tr><td>Entrar a Toolbox</td><td><code>toolbox enter fedora-toolbox-44</code></td><td>—</td></tr>
+        <tr><td>Reiniciar Plasma</td><td><code>systemctl --user restart plasma-plasmashell</code></td><td>Reiniciar Explorer</td></tr>
+        <tr><td>Ver pantallas</td><td><code>kscreen-doctor -o</code></td><td>Configuración de pantalla</td></tr>
+        <tr><td>Leer configuración KDE</td><td><code>kreadconfig6 --file kdeglobals --group General --key ColorScheme</code></td><td>Registro</td></tr>
+        <tr><td>Escribir configuración KDE</td><td><code>kwriteconfig6 --file kdeglobals --group General --key ColorScheme "Catppuccin Mocha Blue"</code></td><td>Registro</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="c10-3">10.3 Recursos</h3>
+  <div class="card-grid">
+    <div class="card">
+      <h4>Documentación oficial</h4>
+      <p>
+        <a href="https://docs.fedoraproject.org/" target="_blank" rel="noopener noreferrer">docs.fedoraproject.org</a><br>
+        <a href="https://fedoraproject.org/kde/" target="_blank" rel="noopener noreferrer">fedoraproject.org/kde</a><br>
+        <a href="https://docs.kde.org/" target="_blank" rel="noopener noreferrer">docs.kde.org</a>
+      </p>
+    </div>
+    <div class="card">
+      <h4>Comunidad</h4>
+      <p>
+        <a href="https://ask.fedoraproject.org/" target="_blank" rel="noopener noreferrer">Ask Fedora</a><br>
+        <a href="https://discuss.kde.org/" target="_blank" rel="noopener noreferrer">KDE Discuss</a><br>
+        <a href="https://discussion.fedoraproject.org/" target="_blank" rel="noopener noreferrer">Fedora Discussion</a>
+      </p>
+    </div>
+    <div class="card">
+      <h4>Paquetes y software</h4>
+      <p>
+        <a href="https://rpmfusion.org/" target="_blank" rel="noopener noreferrer">RPM Fusion</a><br>
+        <a href="https://flathub.org/" target="_blank" rel="noopener noreferrer">Flathub</a><br>
+        <a href="https://packages.fedoraproject.org/" target="_blank" rel="noopener noreferrer">Fedora Packages</a>
+      </p>
+    </div>
+    <div class="card">
+      <h4>Referencia técnica</h4>
+      <p>
+        <a href="https://wiki.archlinux.org/" target="_blank" rel="noopener noreferrer">Arch Wiki</a><br>
+        <a href="https://www.freedesktop.org/software/systemd/man/" target="_blank" rel="noopener noreferrer">systemd manual</a><br>
+        <a href="https://podman.io/docs" target="_blank" rel="noopener noreferrer">Podman docs</a>
+      </p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>
+      Guía independiente sobre Fedora y KDE Plasma, escrita para ingenieros de software que vienen
+      de Windows. Fedora, KDE y Plasma son marcas de sus respectivos titulares.
+    </p>
+    <p>
+      HTML, CSS y JavaScript embebidos en un único archivo. Sin dependencias externas, sin
+      telemetría. Paleta: Catppuccin Mocha / Latte. Última actualización: octubre de 2026.
+    </p>
+  </footer>
+</section>
+<section id="apA" aria-labelledby="tA">
+  <h2 id="tA"><span class="num">A</span> Apéndice · Equivalencias Windows → Fedora KDE</h2>
+  <p class="lead">
+    Tabla maestra para traducir «en Windows esto está en…». Si buscas una herramienta concreta,
+    empieza aquí y luego consulta el capítulo correspondiente.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Categoría</th><th class="win">Windows</th><th class="lin">Fedora KDE</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Escritorio</td><td>Explorer / shell</td><td>Plasma (<code>plasmashell</code>)</td></tr>
+        <tr><td>Menú de aplicaciones</td><td>Inicio</td><td>Kickoff</td></tr>
+        <tr><td>Búsqueda global</td><td>Búsqueda de Windows</td><td>KRunner (<kbd>Alt</kbd>+<kbd>Espacio</kbd>)</td></tr>
+        <tr><td>Gestor de archivos</td><td>Explorador de archivos</td><td>Dolphin</td></tr>
+        <tr><td>Terminal</td><td>Windows Terminal</td><td>Konsole</td></tr>
+        <tr><td>Configuración</td><td>Settings</td><td>System Settings</td></tr>
+        <tr><td>Panel de control</td><td>Panel de control</td><td>System Settings</td></tr>
+        <tr><td>Administrador de tareas</td><td>Task Manager</td><td>System Monitor, <code>top</code></td></tr>
+        <tr><td>Servicios</td><td><code>services.msc</code></td><td><code>systemctl</code></td></tr>
+        <tr><td>Programador de tareas</td><td>Task Scheduler</td><td>systemd timers</td></tr>
+        <tr><td>Visor de eventos</td><td>Event Viewer</td><td><code>journalctl</code></td></tr>
+        <tr><td>Registro</td><td><code>regedit</code></td><td><code>/etc</code> + <code>~/.config</code></td></tr>
+        <tr><td>Variables de entorno</td><td>Propiedades del sistema</td><td><code>~/.bashrc</code>, <code>/etc/environment</code></td></tr>
+        <tr><td>Gestor de paquetes</td><td><code>winget</code></td><td><code>dnf</code></td></tr>
+        <tr><td>Tienda de software</td><td>Microsoft Store</td><td>Discover + Flathub</td></tr>
+        <tr><td>Instalador</td><td><code>.exe</code> / <code>.msi</code></td><td><code>.rpm</code> / Flatpak</td></tr>
+        <tr><td>Actualizaciones</td><td>Windows Update</td><td><code>dnf upgrade</code>, Discover</td></tr>
+        <tr><td>Drivers</td><td>Instalador del fabricante</td><td>Kernel, Mesa, RPM Fusion</td></tr>
+        <tr><td>Firewall</td><td>Defender Firewall</td><td>firewalld</td></tr>
+        <tr><td>Antivirus</td><td>Defender</td><td>SELinux + buenas prácticas</td></tr>
+        <tr><td>Usuarios</td><td><code>lusrmgr.msc</code></td><td>System Settings → Users, <code>useradd</code></td></tr>
+        <tr><td>Permisos</td><td><code>icacls</code></td><td><code>chmod</code>, <code>chown</code>, <code>setfacl</code></td></tr>
+        <tr><td>Elevación</td><td>UAC</td><td><code>sudo</code>, polkit</td></tr>
+        <tr><td>Administración de discos</td><td><code>diskmgmt.msc</code></td><td>KDE Partition Manager, <code>lsblk</code></td></tr>
+        <tr><td>Particionado</td><td><code>diskpart</code></td><td><code>parted</code>, <code>gdisk</code>, installer</td></tr>
+        <tr><td>Cifrado</td><td>BitLocker</td><td>LUKS2</td></tr>
+        <tr><td>Sistema de archivos</td><td>NTFS</td><td>Btrfs (por defecto), ext4</td></tr>
+        <tr><td>Copias de seguridad</td><td>Historial de archivos</td><td>restic, borg, Timeshift</td></tr>
+        <tr><td>Snapshots</td><td>Volume Shadow Copy</td><td>Snapshots de Btrfs</td></tr>
+        <tr><td>Capturas</td><td>Recortes</td><td>Spectacle</td></tr>
+        <tr><td>Portapapeles</td><td><kbd>Win</kbd>+<kbd>V</kbd></td><td>Klipper</td></tr>
+        <tr><td>Editor de texto</td><td>Notepad</td><td>Kate, KWrite</td></tr>
+        <tr><td>IDE</td><td>Visual Studio</td><td>VS Code, JetBrains, Kate</td></tr>
+        <tr><td>Compresores</td><td>WinRAR, 7-Zip</td><td>Ark</td></tr>
+        <tr><td>PDF</td><td>Edge, Acrobat</td><td>Okular</td></tr>
+        <tr><td>Imágenes</td><td>Fotos</td><td>Gwenview</td></tr>
+        <tr><td>Vídeo</td><td>Media Player</td><td>Haruna, VLC</td></tr>
+        <tr><td>Música</td><td>Groove</td><td>Elisa</td></tr>
+        <tr><td>Navegador</td><td>Edge</td><td>Firefox (por defecto)</td></tr>
+        <tr><td>Ofimática</td><td>Microsoft Office</td><td>LibreOffice, OnlyOffice</td></tr>
+        <tr><td>Correo</td><td>Outlook</td><td>Thunderbird</td></tr>
+        <tr><td>Notas</td><td>Sticky Notes</td><td>Marknote</td></tr>
+        <tr><td>Calculadora</td><td>Calculadora</td><td>KCalc, KRunner</td></tr>
+        <tr><td>Escritorio remoto</td><td>RDP</td><td>KRDP, <code>xrdp</code></td></tr>
+        <tr><td>Integración con móvil</td><td>Phone Link</td><td>KDE Connect</td></tr>
+        <tr><td>Fuentes</td><td>Configuración de fuentes</td><td>System Settings → Fonts</td></tr>
+        <tr><td>Aplicaciones por defecto</td><td>Apps predeterminadas</td><td>System Settings → Applications</td></tr>
+        <tr><td>Asociaciones de archivos</td><td>Apps predeterminadas</td><td><code>xdg-mime</code></td></tr>
+        <tr><td>Red</td><td><code>ncpa.cpl</code></td><td>System Settings → Network, <code>nmcli</code></td></tr>
+        <tr><td>Wi-Fi</td><td>Configuración de Wi-Fi</td><td>Applet de NetworkManager</td></tr>
+        <tr><td>Bluetooth</td><td>Configuración de Bluetooth</td><td>Bluedevil</td></tr>
+        <tr><td>Pantalla</td><td>Configuración de pantalla</td><td>System Settings → Display</td></tr>
+        <tr><td>Audio</td><td>Configuración de sonido</td><td>System Settings → Audio, <code>pavucontrol</code></td></tr>
+        <tr><td>Impresoras</td><td>Impresoras y escáneres</td><td><code>system-config-printer</code>, CUPS</td></tr>
+        <tr><td>Energía</td><td>Opciones de energía</td><td>Power Management</td></tr>
+        <tr><td>Bloqueo</td><td><kbd>Win</kbd>+<kbd>L</kbd></td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd></td></tr>
+        <tr><td>Escritorios virtuales</td><td>Vista de tareas</td><td>Virtual Desktops, Overview</td></tr>
+        <tr><td>Información del sistema</td><td><code>msinfo32</code></td><td><code>hostnamectl</code>, <code>fastfetch</code></td></tr>
+        <tr><td>Hardware</td><td>Administrador de dispositivos</td><td><code>lspci</code>, <code>lsusb</code>, <code>hwinfo</code></td></tr>
+        <tr><td>Uso de disco</td><td>Almacenamiento</td><td>Filelight, <code>du</code>, <code>df</code></td></tr>
+        <tr><td>Crear USB de instalación</td><td>Rufus</td><td>Fedora Media Writer, <code>dd</code></td></tr>
+        <tr><td>SSH</td><td>PuTTY</td><td><code>ssh</code>, <code>scp</code>, <code>rsync</code></td></tr>
+        <tr><td>Contenedores</td><td>Docker Desktop</td><td>Podman, Podman Desktop</td></tr>
+        <tr><td>Máquinas virtuales</td><td>Hyper-V</td><td>KVM + libvirt + virt-manager</td></tr>
+        <tr><td>Linux dentro de Windows</td><td>WSL2</td><td>Toolbox, Distrobox o VM</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip">
+    <span class="t">Cómo usar esta tabla</span>
+    <p>
+      La columna de Fedora indica el equivalente funcional, no una copia exacta. Si la herramienta
+      de Windows era propietaria, en Linux suele haber varias opciones: elige la que mejor se
+      integre con tu flujo y no instales tres para lo mismo.
+    </p>
+  </div>
+</section>
+    </div>
+  </main>
+</div>
+
+<button class="to-top" id="toTop" type="button" aria-label="Volver arriba" title="Volver arriba">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+</button>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  /* ----------------------------------------------------------
+     Tema: Catppuccin Mocha por defecto, Latte opcional
+     ---------------------------------------------------------- */
+  var root = document.documentElement;
+  var themeBtn = $('#themeToggle');
+
+  var sunIcon = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  var moonIcon = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+
+  function effectiveTheme() {
+    return root.dataset.theme === 'light' ? 'light' : 'dark';
+  }
+
+  function renderTheme() {
+    var dark = effectiveTheme() === 'dark';
+    themeBtn.innerHTML = dark ? sunIcon : moonIcon;
+    themeBtn.setAttribute('aria-label', dark ? 'Cambiar al tema claro' : 'Cambiar al tema oscuro');
+    themeBtn.title = dark ? 'Cambiar al tema claro' : 'Cambiar al tema oscuro';
+
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.content = dark ? '#1e1e2e' : '#eff1f5';
+  }
+
+  themeBtn.addEventListener('click', function () {
+    var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch (e) {}
+    renderTheme();
+  });
+
+  renderTheme();
+
+  /* ----------------------------------------------------------
+     Barra de progreso, scrollspy y botón de subir
+     ---------------------------------------------------------- */
+  var progress = $('#progress');
+  var toTop = $('#toTop');
+  var sidebar = $('#sidebar');
+  var headings = $$('main h2[id], main h3[id]');
+  var linkById = {};
+  var activeLink = null;
+
+  $$('.toc-link').forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    linkById[id] = a;
+  });
+
+  function keepLinkVisible(link) {
+    if (!sidebar || window.innerWidth < 1024) return;
+    var box = sidebar.getBoundingClientRect();
+    var rect = link.getBoundingClientRect();
+    var topPad = 78;
+    var bottomPad = 16;
+
+    if (rect.top < box.top + topPad) {
+      sidebar.scrollTop -= (box.top + topPad - rect.top);
+    } else if (rect.bottom > box.bottom - bottomPad) {
+      sidebar.scrollTop += (rect.bottom - (box.bottom - bottomPad));
+    }
+  }
+
+  function setActive(id) {
+    var link = linkById[id];
+    if (!link || link === activeLink) return;
+    if (activeLink) activeLink.classList.remove('active');
+    link.classList.add('active');
+    activeLink = link;
+    keepLinkVisible(link);
+  }
+
+  var ticking = false;
+
+  function updateScrollState() {
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - window.innerHeight;
+    progress.style.width = (max > 0 ? Math.min(100, (window.scrollY / max) * 100) : 0) + '%';
+    toTop.classList.toggle('show', window.scrollY > 700);
+
+    var current = null;
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= 140) {
+        current = headings[i];
+      } else {
+        break;
+      }
+    }
+
+    if (!current) {
+      setActive('inicio');
+      return;
+    }
+
+    var idx = headings.indexOf(current);
+    var id = current.id;
+    while (idx >= 0 && !linkById[id]) {
+      idx--;
+      id = idx >= 0 ? headings[idx].id : '';
+    }
+    if (id) setActive(id);
+  }
+
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      ticking = false;
+      updateScrollState();
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  updateScrollState();
+
+  toTop.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ----------------------------------------------------------
+     Sidebar móvil
+     ---------------------------------------------------------- */
+  var overlay = $('#overlay');
+  var menuBtn = $('#menuBtn');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('no-scroll');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('no-scroll');
+  }
+
+  menuBtn.addEventListener('click', function () {
+    if (sidebar.classList.contains('open')) closeSidebar();
+    else openSidebar();
+  });
+
+  overlay.addEventListener('click', closeSidebar);
+
+  $$('.toc-link').forEach(function (a) {
+    a.addEventListener('click', function () {
+      if (window.innerWidth < 1024) closeSidebar();
+    });
+  });
+
+  window.addEventListener('resize', function () {
+    if (window.innerWidth >= 1024) closeSidebar();
+  });
+
+  /* ----------------------------------------------------------
+     Índice: grupos colapsables y filtro
+     ---------------------------------------------------------- */
+  $$('.toc-group-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var group = btn.closest('.toc-group');
+      var collapsed = group.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!collapsed));
+    });
+  });
+
+  var navFilter = $('#navFilter');
+  var groups = $$('.toc-group');
+  var filterEmpty = $('#filterEmpty');
+
+  function applyNavFilter() {
+    var q = navFilter.value.trim().toLocaleLowerCase('es');
+    var total = 0;
+
+    groups.forEach(function (group) {
+      var visible = 0;
+
+      $$('.toc-link', group).forEach(function (link) {
+        var li = link.parentElement;
+        var match = !q || link.textContent.toLocaleLowerCase('es').indexOf(q) !== -1;
+        li.classList.toggle('hidden', !match);
+        if (match) visible++;
+      });
+
+      group.classList.toggle('hidden', visible === 0);
+
+      if (q && visible > 0) {
+        group.classList.remove('collapsed');
+        var btn = $('.toc-group-btn', group);
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      }
+
+      total += visible;
+    });
+
+    filterEmpty.classList.toggle('show', total === 0);
+  }
+
+  navFilter.addEventListener('input', applyNavFilter);
+
+  /* ----------------------------------------------------------
+     Pestañas
+     ---------------------------------------------------------- */
+  $$('[data-tabs]').forEach(function (widget) {
+    var tabs = $$('[role="tab"]', widget);
+    var panels = $$('[role="tabpanel"]', widget);
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) {
+          t.setAttribute('aria-selected', String(t === tab));
+        });
+        panels.forEach(function (panel) {
+          panel.hidden = panel.id !== tab.getAttribute('data-tab');
+        });
+      });
+    });
+  });
+
+  /* ----------------------------------------------------------
+     Botón de copiar en bloques de código
+     ---------------------------------------------------------- */
+  $$('pre').forEach(function (pre) {
+    if (pre.hasAttribute('data-nocopy')) return;
+
+    var code = pre.querySelector('code');
+    if (!code) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'code-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copiar';
+    btn.setAttribute('aria-label', 'Copiar bloque de código');
+    wrap.appendChild(btn);
+
+    btn.addEventListener('click', function () {
+      var text = code.innerText;
+
+      function done() {
+        btn.textContent = 'Copiado';
+        btn.classList.add('done');
+        setTimeout(function () {
+          btn.textContent = 'Copiar';
+          btn.classList.remove('done');
+        }, 1600);
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        ta.remove();
+        done();
+      }
+    });
+  });
+
+  /* ----------------------------------------------------------
+     Filtro de la chuleta
+     ---------------------------------------------------------- */
+  var cheatFilter = $('#cheatFilter');
+  if (cheatFilter) {
+    var cheatRows = $$('#cheatTable tbody tr');
+    cheatFilter.addEventListener('input', function () {
+      var q = cheatFilter.value.trim().toLocaleLowerCase('es');
+      cheatRows.forEach(function (tr) {
+        tr.hidden = Boolean(q) && tr.textContent.toLocaleLowerCase('es').indexOf(q) === -1;
+      });
+    });
+  }
+
+  /* ----------------------------------------------------------
+     Atajos de teclado
+     ---------------------------------------------------------- */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeSidebar();
+      if (document.activeElement === navFilter) navFilter.blur();
+      if (document.activeElement === cheatFilter) cheatFilter.blur();
+      return;
+    }
+
+    var el = document.activeElement;
+    var tag = el ? el.tagName : '';
+    var typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (el && el.isContentEditable);
+
+    if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (window.innerWidth < 1024) openSidebar();
+      navFilter.focus();
+      navFilter.select();
+    }
+  });
+})();
+</script>
+</body>
+</html>
